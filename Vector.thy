@@ -30,4 +30,7 @@ lemma [simp]: "x \<le> length as \<Longrightarrow> x \<le> y \<Longrightarrow> l
     thus ?case by (induction y) simp_all
   qed simp_all
 
+lemma [elim]: "lookup x as = Some a \<Longrightarrow> x < length as"
+  by (induction x as rule: lookup.induct) simp_all
+
 end

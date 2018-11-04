@@ -12,93 +12,56 @@ inductive evaluate :: "expr \<Rightarrow> expr \<Rightarrow> bool" (infix "\<lea
 
 inductive_cases [elim]: "e \<leadsto> e'"
 
-theorem progress: "[] \<turnstile> e : t \<Longrightarrow> is_value e \<or> (\<exists>e'. e \<leadsto> e')"
+theorem [simp]: "[] \<turnstile> e : t \<Longrightarrow> unfold e = (s, r) \<Longrightarrow> is_value e \<or> (\<exists>r'. r \<leadsto>\<^sub>\<beta> r')"
     and "[] \<turnstile>\<^sub>f fs : ts \<Longrightarrow> \<not> is_value_f fs \<Longrightarrow> unfold_f fs = (vs, nvs, s, r) \<Longrightarrow> \<exists>r'. r \<leadsto>\<^sub>\<beta> r'"
     and "[] \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> l < length ts \<Longrightarrow> \<exists>c. lookup l cs = Some c"
   proof (induction "[] :: type list" e t and "[] :: type list" fs ts and "[] :: type list" cs ts t
-         arbitrary: and vs nvs s r and l
+         arbitrary: s r and vs nvs s r and l
          rule: typecheck_typecheck_fs_typecheck_cs.inducts)
   case (tc_app e\<^sub>1 t\<^sub>1 t\<^sub>2 e\<^sub>2)
     thus ?case
       proof (cases "is_value e\<^sub>1")
       case True note T = True
-        thus ?thesis
+        with tc_app show ?thesis
           proof (cases "is_value e\<^sub>2")
           case True
-            moreover from T True have "unfold (App e\<^sub>1 e\<^sub>2) = ([], App e\<^sub>1 e\<^sub>2)" by simp
-            moreover from tc_app T obtain e\<^sub>1' where "e\<^sub>1 = Abs t\<^sub>1 e\<^sub>1'" by fastforce
-            ultimately show ?thesis using ev_stack ev_beta by blast
-          next case False
-            with tc_app obtain s r r' where "unfold e\<^sub>2 = (s, r) \<and> r \<leadsto>\<^sub>\<beta> r' \<and> e\<^sub>2 \<leadsto> fold s r'" 
-              by fastforce
-            moreover with True False have "unfold (App e\<^sub>1 e\<^sub>2) = (SApp2 e\<^sub>1 # s, r)" by simp
-            ultimately show ?thesis using ev_stack by blast
-          qed
-      next case False
-        with tc_app obtain s r r' where "unfold e\<^sub>1 = (s, r) \<and> r \<leadsto>\<^sub>\<beta> r' \<and> e\<^sub>1 \<leadsto> fold s r'" 
-          by fastforce
-        moreover with False have "unfold (App e\<^sub>1 e\<^sub>2) = (SApp1 e\<^sub>2 # s, r)" by simp
-        ultimately show ?thesis using ev_stack by blast
-      qed
-  next case (tc_rec fs ts)
-    thus ?case 
-      proof (cases "is_value_f fs")
-      case False
-        then obtain vs nvs s e where X: "unfold (Rec fs) = (SRec vs nvs # s, e)" 
-          by (cases "unfold_f fs") simp_all
-        with False tc_rec obtain e' where "e \<leadsto>\<^sub>\<beta> e'" by (cases "unfold_f fs") fastforce+
-        with X have "Rec fs \<leadsto> fold (SRec vs nvs # s) e'" using ev_stack by fastforce
-        thus ?thesis by fastforce
-      qed simp_all
+            moreover with tc_app T obtain e\<^sub>1' where "r = App (Abs t\<^sub>1 e\<^sub>1') e\<^sub>2" by fastforce
+            ultimately show ?thesis using ev_beta by blast
+          qed (auto split: prod.splits)
+      qed (auto split: prod.splits)
   next case (tc_proj e ts l t)
     thus ?case 
       proof (cases "is_value e")
       case True
-        with tc_proj obtain fs where E: "e = Rec fs \<and> is_value_f fs" by fastforce
-        hence X: "unfold (Proj (Rec fs) l) = ([], Proj (Rec fs) l)" by simp
-        from tc_proj E obtain e' where "lookup l fs = Some e'" by fastforce
-        with E have "Proj (Rec fs) l \<leadsto>\<^sub>\<beta> e'" by simp
-        with X E show ?thesis using ev_stack by fastforce
-      next case False
-        with tc_proj obtain s r r' where "unfold e = (s, r) \<and> r \<leadsto>\<^sub>\<beta> r' \<and> e \<leadsto> fold s r'" 
+        with tc_proj obtain fs where "r = Proj (Rec fs) l \<and> is_value_f fs \<and> [] \<turnstile>\<^sub>f fs : ts" 
           by fastforce
-        moreover with False have "unfold (Proj e l) = (SProj l # s, r)" by simp
-        ultimately show ?thesis using ev_stack by blast
-      qed
-  next case (tc_inj e t l ts)
-    thus ?case
-      proof (cases "is_value e")
-      case False
-        with tc_inj obtain s r r' where S: "unfold e = (s, r) \<and> r \<leadsto>\<^sub>\<beta> r' \<and> e \<leadsto> fold s r'" 
-          by fastforce
-        moreover with False have "unfold (Inj l ts e) = (SInj l ts # s, r)" by simp
-        ultimately show ?thesis using ev_stack by blast
-      qed simp_all
+        moreover with tc_proj obtain r' where "lookup l fs = Some r'" by fastforce
+        ultimately show ?thesis using ev_proj by blast
+      qed (auto split: prod.splits)
   next case (tc_case e ts cs t)
     thus ?case
       proof (cases "is_value e")
       case True
-        with tc_case obtain l e' where E: "e = Inj l ts e' \<and> is_value e' \<and> l < length ts" 
+        with tc_case obtain l e' where E: "r = Case (Inj l ts e') cs \<and> is_value e' \<and> l < length ts" 
           by fastforce
-        hence X: "unfold (Case (Inj l ts e') cs) = ([], Case (Inj l ts e') cs)" by simp
-        from tc_case E obtain r' where "lookup l cs = Some r'" by fastforce
-        with E have "Case (Inj l ts e') cs \<leadsto>\<^sub>\<beta> subst 0 e' r'" by simp
-        with X E show ?thesis using ev_stack by fastforce
-      next case False
-        with tc_case obtain s r r' where S: "unfold e = (s, r) \<and> r \<leadsto>\<^sub>\<beta> r' \<and> e \<leadsto> fold s r'" 
-          by fastforce
-        moreover with False have "unfold (Case e cs) = (SCase cs # s, r)" by simp
-        ultimately show ?thesis using ev_stack by blast
-      qed
-  next case (tcf_cons e t fs ts l)
-    thus ?case
-      proof (cases "is_value e")
-      case True
-        with tcf_cons show ?thesis by (cases "unfold_f fs") simp_all
-      qed fastforce+
+        moreover with tc_case obtain r' where "lookup l cs = Some r'" by fastforce
+        ultimately show ?thesis using ev_case by blast
+      qed (auto split: prod.splits)
   next case (tcc_cons t' e t fs ts)
     thus ?case by (induction l) simp_all
-  qed simp_all
+  qed (auto split: if_splits prod.splits)
+
+theorem progress: "[] \<turnstile> e : t \<Longrightarrow> is_value e \<or> (\<exists>e'. e \<leadsto> e')"
+  proof -
+    assume "[] \<turnstile> e : t"
+    moreover obtain s r where S: "unfold e = (s, r)" by fastforce
+    ultimately have R: "is_value e \<or> (\<exists>r'. r \<leadsto>\<^sub>\<beta> r')" by simp
+    thus "is_value e \<or> (\<exists>e'. e \<leadsto> e')" 
+      proof (cases "is_value e")
+      case False
+        with R S show ?thesis using ev_stack by fastforce
+      qed simp_all
+  qed
 
 lemma preservation\<^sub>\<beta>: "e \<leadsto>\<^sub>\<beta> e' \<Longrightarrow> \<Gamma> \<turnstile> e : t \<Longrightarrow> \<Gamma> \<turnstile> e' : t"
   proof (induction e e' rule: reduce.induct) 

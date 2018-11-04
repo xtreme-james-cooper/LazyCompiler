@@ -7,7 +7,7 @@ inductive typecheck :: "type list \<Rightarrow> expr \<Rightarrow> type \<Righta
       and typecheck_cs :: "type list \<Rightarrow> expr list \<Rightarrow> type list \<Rightarrow> type \<Rightarrow> bool" 
     (infix "\<turnstile>\<^sub>c _ : _ \<rightarrow>" 60) where
   tc_var [simp]: "lookup x \<Gamma> = Some t \<Longrightarrow> \<Gamma> \<turnstile> Var x : t"
-| tc_abs [simp]: "t\<^sub>1 # \<Gamma> \<turnstile> e : t\<^sub>2 \<Longrightarrow> \<Gamma> \<turnstile> Abs t\<^sub>1 e : Arrow t\<^sub>1 t\<^sub>2"
+| tc_abs [simp]: "insert_at 0 t\<^sub>1 \<Gamma> \<turnstile> e : t\<^sub>2 \<Longrightarrow> \<Gamma> \<turnstile> Abs t\<^sub>1 e : Arrow t\<^sub>1 t\<^sub>2"
 | tc_app [simp]: "\<Gamma> \<turnstile> e\<^sub>1 : Arrow t\<^sub>1 t\<^sub>2 \<Longrightarrow> \<Gamma> \<turnstile> e\<^sub>2 : t\<^sub>1 \<Longrightarrow> \<Gamma> \<turnstile> App e\<^sub>1 e\<^sub>2 : t\<^sub>2"
 | tc_rec [simp]: "\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> \<Gamma> \<turnstile> Rec fs : Record ts"
 | tc_proj [simp]: "\<Gamma> \<turnstile> e : Record ts \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<Gamma> \<turnstile> Proj e l : t"
@@ -16,7 +16,7 @@ inductive typecheck :: "type list \<Rightarrow> expr \<Rightarrow> type \<Righta
 | tcf_nil [simp]: "\<Gamma> \<turnstile>\<^sub>f [] : []"
 | tcf_cons [simp]: "\<Gamma> \<turnstile> e : t \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>f e # fs : t # ts"
 | tcc_nil [simp]: "\<Gamma> \<turnstile>\<^sub>c [] : [] \<rightarrow> t"
-| tcc_cons [simp]: "t' # \<Gamma> \<turnstile> e : t \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>c fs : ts \<rightarrow> t \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>c e # fs : t' # ts \<rightarrow> t"
+| tcc_cons [simp]: "insert_at 0 t' \<Gamma> \<turnstile> e : t \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>c fs : ts \<rightarrow> t \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>c e # fs : t' # ts \<rightarrow> t"
 
 inductive_cases [elim]: "\<Gamma> \<turnstile> Var x : t"
 inductive_cases [elim]: "\<Gamma> \<turnstile> Abs t\<^sub>1 e : t"
@@ -34,7 +34,7 @@ lemma canonical_arrow [simp]: "\<Gamma> \<turnstile> e : Arrow t\<^sub>1 t\<^sub
   by (induction \<Gamma> e "Arrow t\<^sub>1 t\<^sub>2" rule: typecheck_typecheck_fs_typecheck_cs.inducts(1)) simp_all
 
 lemma canonical_record [simp]: "\<Gamma> \<turnstile> e : Record ts \<Longrightarrow> is_value e \<Longrightarrow> 
-    \<exists>fs. e = Rec fs \<and> is_value_f fs"
+    \<exists>fs. e = Rec fs \<and> is_value_f fs \<and> \<Gamma> \<turnstile>\<^sub>f fs : ts"
   by (induction \<Gamma> e "Record ts" rule: typecheck_typecheck_fs_typecheck_cs.inducts(1)) simp_all
 
 lemma canonical_variant [simp]: "\<Gamma> \<turnstile> e : Variant ts \<Longrightarrow> is_value e \<Longrightarrow> 
@@ -60,24 +60,19 @@ lemma [simp]: "insert_at x t' \<Gamma> \<turnstile> e : t \<Longrightarrow> x \<
     \<Gamma> \<turnstile>\<^sub>f map (subst x e') fs : ts"
   and [simp]: "insert_at x t' \<Gamma> \<turnstile>\<^sub>c fs : ts \<rightarrow> t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Gamma> \<turnstile> e' : t' \<Longrightarrow> 
     \<Gamma> \<turnstile>\<^sub>c map (subst (Suc x) (incr 0 e')) fs : ts \<rightarrow> t "
-  proof (induction "insert_at x t' \<Gamma>" e t and "insert_at x t' \<Gamma>" fs ts and "insert_at x t' \<Gamma>" fs ts t 
+  proof (induction "insert_at x t' \<Gamma>" e t and "insert_at x t' \<Gamma>" fs ts 
+               and "insert_at x t' \<Gamma>" fs ts t 
          arbitrary: \<Gamma> x e' and \<Gamma> x e' and \<Gamma> x e'
          rule: typecheck_typecheck_fs_typecheck_cs.inducts)
   case (tc_var y t)
     thus ?case by (cases y) auto
-  next case (tc_abs t\<^sub>1 e t\<^sub>2)
-    moreover hence "insert_at 0 t\<^sub>1 \<Gamma> \<turnstile> incr 0 e' : t'" by (simp del: insert_at.simps(1))
-    ultimately show ?case by simp
-  next case (tcc_cons tt e t fs ts)
-    moreover hence "insert_at 0 tt \<Gamma> \<turnstile> incr 0 e' : t'" by (simp del: insert_at.simps(1))
-    ultimately show ?case by simp
   qed fastforce+
 
 lemma [elim]: "\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> lookup l fs = Some e \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<Gamma> \<turnstile> e : t" 
   by (induction l fs arbitrary: ts rule: lookup.induct) auto
 
 lemma [elim]: "\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> lookup l cs = Some e \<Longrightarrow> lookup l ts = Some t' \<Longrightarrow> 
-    t' # \<Gamma> \<turnstile> e : t" 
+    insert_at 0 t' \<Gamma> \<turnstile> e : t" 
   by (induction l cs arbitrary: ts rule: lookup.induct) auto
 
 end

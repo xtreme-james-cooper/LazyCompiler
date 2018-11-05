@@ -3,9 +3,9 @@ imports Stack
 begin
 
 inductive reduce :: "expr \<Rightarrow> expr \<Rightarrow> bool" (infix "\<leadsto>\<^sub>\<beta>" 60) where
-  ev_beta [simp]: "is_value e\<^sub>2 \<Longrightarrow> App (Abs t e\<^sub>1) e\<^sub>2 \<leadsto>\<^sub>\<beta> subst 0 e\<^sub>2 e\<^sub>1" 
+  ev_beta [simp]: "is_value e\<^sub>2 \<Longrightarrow> App (Abs t e\<^sub>1) e\<^sub>2 \<leadsto>\<^sub>\<beta> subst\<^sub>e\<^sub>e 0 e\<^sub>2 e\<^sub>1" 
 | ev_proj [simp]: "is_value_f fs \<Longrightarrow> lookup l fs = Some e \<Longrightarrow> Proj (Rec fs) l \<leadsto>\<^sub>\<beta> e" 
-| ev_case [simp]: "is_value e \<Longrightarrow> lookup l cs = Some e' \<Longrightarrow> Case (Inj l ts e) cs \<leadsto>\<^sub>\<beta> subst 0 e e'" 
+| ev_case [simp]: "is_value e \<Longrightarrow> lookup l cs = Some e' \<Longrightarrow> Case (Inj l ts e) cs \<leadsto>\<^sub>\<beta> subst\<^sub>e\<^sub>e 0 e e'" 
 
 inductive evaluate :: "expr \<Rightarrow> expr \<Rightarrow> bool" (infix "\<leadsto>" 60) where
   ev_stack [simp]: "unfold e = (s, r) \<Longrightarrow> r \<leadsto>\<^sub>\<beta> r' \<Longrightarrow> e \<leadsto> fold s r'"

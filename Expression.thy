@@ -1,12 +1,6 @@
 theory Expression
-imports Main
+imports Type
 begin
-
-datatype type = 
-  Base
-| Arrow type type
-| Record "type list"
-| Variant "type list"
 
 datatype expr = 
   Var nat
@@ -17,23 +11,23 @@ datatype expr =
 | Inj nat "type list" expr
 | Case expr "expr list"
 
-primrec incr :: "nat \<Rightarrow> expr \<Rightarrow> expr" where
-  "incr x (Var y) = Var (if x \<le> y then Suc y else y)"
-| "incr x (Abs t e) = Abs t (incr (Suc x) e)"
-| "incr x (App e\<^sub>1 e\<^sub>2) = App (incr x e\<^sub>1) (incr x e\<^sub>2)"
-| "incr x (Rec fs) = Rec (map (incr x) fs)"
-| "incr x (Proj e l) = Proj (incr x e) l"
-| "incr x (Inj l ts e) = Inj l ts (incr x e)"
-| "incr x (Case e cs) = Case (incr x e) (map (incr (Suc x)) cs)"
+primrec incr\<^sub>e\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr" where
+  "incr\<^sub>e\<^sub>e x (Var y) = Var (if x \<le> y then Suc y else y)"
+| "incr\<^sub>e\<^sub>e x (Abs t e) = Abs t (incr\<^sub>e\<^sub>e (Suc x) e)"
+| "incr\<^sub>e\<^sub>e x (App e\<^sub>1 e\<^sub>2) = App (incr\<^sub>e\<^sub>e x e\<^sub>1) (incr\<^sub>e\<^sub>e x e\<^sub>2)"
+| "incr\<^sub>e\<^sub>e x (Rec fs) = Rec (map (incr\<^sub>e\<^sub>e x) fs)"
+| "incr\<^sub>e\<^sub>e x (Proj e l) = Proj (incr\<^sub>e\<^sub>e x e) l"
+| "incr\<^sub>e\<^sub>e x (Inj l ts e) = Inj l ts (incr\<^sub>e\<^sub>e x e)"
+| "incr\<^sub>e\<^sub>e x (Case e cs) = Case (incr\<^sub>e\<^sub>e x e) (map (incr\<^sub>e\<^sub>e (Suc x)) cs)"
 
-primrec subst :: "nat \<Rightarrow> expr \<Rightarrow> expr \<Rightarrow> expr" where
-  "subst x e' (Var y) = (if x = y then e' else Var (if x < y then y - 1 else y))"
-| "subst x e' (Abs t e) = Abs t (subst (Suc x) (incr 0 e') e)"
-| "subst x e' (App e\<^sub>1 e\<^sub>2) = App (subst x e' e\<^sub>1) (subst x e' e\<^sub>2)"
-| "subst x e' (Rec fs) = Rec (map (subst x e') fs)"
-| "subst x e' (Proj e l) = Proj (subst x e' e) l"
-| "subst x e' (Inj l ts e) = Inj l ts (subst x e' e)"
-| "subst x e' (Case e cs) = Case (subst x e' e) (map (subst (Suc x) (incr 0 e')) cs)"
+primrec subst\<^sub>e\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr \<Rightarrow> expr" where
+  "subst\<^sub>e\<^sub>e x e' (Var y) = (if x = y then e' else Var (if x < y then y - 1 else y))"
+| "subst\<^sub>e\<^sub>e x e' (Abs t e) = Abs t (subst\<^sub>e\<^sub>e (Suc x) (incr\<^sub>e\<^sub>e 0 e') e)"
+| "subst\<^sub>e\<^sub>e x e' (App e\<^sub>1 e\<^sub>2) = App (subst\<^sub>e\<^sub>e x e' e\<^sub>1) (subst\<^sub>e\<^sub>e x e' e\<^sub>2)"
+| "subst\<^sub>e\<^sub>e x e' (Rec fs) = Rec (map (subst\<^sub>e\<^sub>e x e') fs)"
+| "subst\<^sub>e\<^sub>e x e' (Proj e l) = Proj (subst\<^sub>e\<^sub>e x e' e) l"
+| "subst\<^sub>e\<^sub>e x e' (Inj l ts e) = Inj l ts (subst\<^sub>e\<^sub>e x e' e)"
+| "subst\<^sub>e\<^sub>e x e' (Case e cs) = Case (subst\<^sub>e\<^sub>e x e' e) (map (subst\<^sub>e\<^sub>e (Suc x) (incr\<^sub>e\<^sub>e 0 e')) cs)"
 
 primrec is_value :: "expr \<Rightarrow> bool" 
     and is_value_f :: "expr list \<Rightarrow> bool" where

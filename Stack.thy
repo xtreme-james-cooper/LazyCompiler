@@ -58,7 +58,7 @@ and unfold_f :: "expr list \<Rightarrow> expr list \<times> expr list \<times> f
     else cons_fst (SInj l ts) (unfold e))"
 | "unfold (Case e cs) = (
     if is_value e 
-    then ([], Case e cs) 
+    then ([], Case e cs)
     else cons_fst (SCase cs) (unfold e))"
 | "unfold_f [] = undefined"
 | "unfold_f (e # fs) = (
@@ -108,7 +108,7 @@ lemma [simp]: "\<Gamma> \<turnstile> e : t \<Longrightarrow> unfold e = (s, e') 
             with tc_app T show ?thesis 
               by simp (metis tcs_nil typecheck_typecheck_fs_typecheck_cs.tc_app)
           next case False
-            with tc_app True obtain s\<^sub>2 where "unfold e\<^sub>2 = (s\<^sub>2, e') \<and> s = SApp2 e\<^sub>1 # s\<^sub>2" 
+            with tc_app True obtain s\<^sub>2 where "unfold e\<^sub>2 = (s\<^sub>2, e') \<and> s = SApp2 e\<^sub>1 # s\<^sub>2"
               by (auto split: prod.splits)
             moreover with tc_app obtain t' where "(\<Gamma> \<turnstile>\<^sub>s s\<^sub>2 : t' \<rightarrow> t\<^sub>1) \<and> \<Gamma> \<turnstile> e' : t'" by fastforce
             moreover with tc_app have "\<Gamma> \<turnstile>\<^sub>s SApp2 e\<^sub>1 # s\<^sub>2 : t' \<rightarrow> t\<^sub>2" by fastforce

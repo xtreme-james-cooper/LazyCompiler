@@ -47,19 +47,19 @@ lemma [simp]: "\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> lookup l 
 lemma [simp]: "\<Gamma> \<turnstile>\<^sub>f vs : vts \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>f nvs : nvts \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>f vs @ nvs : vts @ nvts"
   by (induction \<Gamma> vs vts rule: typecheck_typecheck_fs_typecheck_cs.inducts(2)) simp_all
 
-lemma [simp]: "\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> insert_at x t' \<Gamma> \<turnstile> incr x e : t"
-  and [simp]: "\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> insert_at x t' \<Gamma> \<turnstile>\<^sub>f map (incr x) fs : ts"
+lemma [simp]: "\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> insert_at x t' \<Gamma> \<turnstile> incr\<^sub>e\<^sub>e x e : t"
+  and [simp]: "\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> insert_at x t' \<Gamma> \<turnstile>\<^sub>f map (incr\<^sub>e\<^sub>e x) fs : ts"
   and [simp]: "\<Gamma> \<turnstile>\<^sub>c fs : ts \<rightarrow> t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> 
-    insert_at x t' \<Gamma> \<turnstile>\<^sub>c map (incr (Suc x)) fs : ts \<rightarrow> t"
+    insert_at x t' \<Gamma> \<turnstile>\<^sub>c map (incr\<^sub>e\<^sub>e (Suc x)) fs : ts \<rightarrow> t"
   by (induction \<Gamma> e t and \<Gamma> fs ts and \<Gamma> fs ts t arbitrary: x and x and x 
       rule: typecheck_typecheck_fs_typecheck_cs.inducts) 
      fastforce+
 
-lemma [simp]: "insert_at x t' \<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Gamma> \<turnstile> e' : t' \<Longrightarrow> \<Gamma> \<turnstile> subst x e' e : t"
+lemma [simp]: "insert_at x t' \<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Gamma> \<turnstile> e' : t' \<Longrightarrow> \<Gamma> \<turnstile> subst\<^sub>e\<^sub>e x e' e : t"
   and [simp]: "insert_at x t' \<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Gamma> \<turnstile> e' : t' \<Longrightarrow> 
-    \<Gamma> \<turnstile>\<^sub>f map (subst x e') fs : ts"
+    \<Gamma> \<turnstile>\<^sub>f map (subst\<^sub>e\<^sub>e x e') fs : ts"
   and [simp]: "insert_at x t' \<Gamma> \<turnstile>\<^sub>c fs : ts \<rightarrow> t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Gamma> \<turnstile> e' : t' \<Longrightarrow> 
-    \<Gamma> \<turnstile>\<^sub>c map (subst (Suc x) (incr 0 e')) fs : ts \<rightarrow> t "
+    \<Gamma> \<turnstile>\<^sub>c map (subst\<^sub>e\<^sub>e (Suc x) (incr\<^sub>e\<^sub>e 0 e')) fs : ts \<rightarrow> t "
   proof (induction "insert_at x t' \<Gamma>" e t and "insert_at x t' \<Gamma>" fs ts 
                and "insert_at x t' \<Gamma>" fs ts t 
          arbitrary: \<Gamma> x e' and \<Gamma> x e' and \<Gamma> x e'

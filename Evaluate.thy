@@ -74,7 +74,7 @@ lemma preservation\<^sub>\<beta>: "e \<leadsto>\<^sub>\<beta> e' \<Longrightarro
 theorem preservation: "e \<leadsto> e' \<Longrightarrow> \<Gamma> \<turnstile> e : t \<Longrightarrow> \<Gamma> \<turnstile> e' : t"
   proof (induction e e' rule: evaluate.induct)
   case (ev_stack e s r r')
-    then obtain t' where "(\<Gamma> \<turnstile> s : t' \<rightarrow> t) \<and> \<Gamma> \<turnstile> r : t'" by fastforce
+    then obtain t' where "(\<Gamma> \<turnstile>\<^sub>s s : t' \<rightarrow> t) \<and> \<Gamma> \<turnstile> r : t'" by fastforce
     moreover with ev_stack have "\<Gamma> \<turnstile> r' : t'" using preservation\<^sub>\<beta> by simp
     ultimately show ?case by fastforce
   qed

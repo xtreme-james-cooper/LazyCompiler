@@ -38,6 +38,12 @@ lemma [simp]: "x \<le> length as \<Longrightarrow> x \<le> y \<Longrightarrow> l
     thus ?case by (induction y) simp_all
   qed simp_all
 
+lemma [simp]: "x \<le> length as \<Longrightarrow> map f (insert_at x a as) = insert_at x (f a) (map f as)"
+  by (induction x a as rule: insert_at.induct) simp_all
+
+lemma [simp]: "lookup x (map f as) = map_option f (lookup x as)"
+  by (induction x as rule: lookup.induct) simp_all
+
 lemma [elim]: "lookup x as = Some a \<Longrightarrow> x < length as"
   by (induction x as rule: lookup.induct) simp_all
 

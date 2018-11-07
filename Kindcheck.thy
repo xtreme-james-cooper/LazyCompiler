@@ -7,12 +7,14 @@ inductive kinding :: "nat \<Rightarrow> type \<Rightarrow> bool" (infix "\<turns
 | k_arrow [simp]: "\<Delta> \<turnstile>\<^sub>k t\<^sub>1 \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t\<^sub>2 \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Arrow t\<^sub>1 t\<^sub>2"
 | k_record [simp]: "(\<forall>t \<in> set ts. \<Delta> \<turnstile>\<^sub>k t) \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Record ts"
 | k_variant [simp]: "(\<forall>t \<in> set ts. \<Delta> \<turnstile>\<^sub>k t) \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Variant ts"
+| k_inductive [simp]: "Suc \<Delta> \<turnstile>\<^sub>k t \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Inductive t"
 | k_forall [simp]: "Suc \<Delta> \<turnstile>\<^sub>k t \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Forall t"
 
 inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k TyVar x"
 inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k Arrow t\<^sub>1 t\<^sub>2"
 inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k Record ts"
 inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k Variant ts"
+inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k Inductive t"
 inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k Forall t"
 
 lemma [simp]: "\<Delta> \<turnstile>\<^sub>k t \<Longrightarrow> Suc \<Delta> \<turnstile>\<^sub>k incr\<^sub>t\<^sub>t x t"

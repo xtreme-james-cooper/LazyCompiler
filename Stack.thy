@@ -9,6 +9,8 @@ datatype frame =
 | SProj nat
 | SInj nat "type list"
 | SCase "expr list" 
+| SFold type 
+| SUnfold type 
 | STyApp type 
 
 inductive typecheck_frame :: "nat \<Rightarrow> type list \<Rightarrow> frame \<Rightarrow> type \<Rightarrow> type \<Rightarrow> bool" 
@@ -20,6 +22,8 @@ inductive typecheck_frame :: "nat \<Rightarrow> type list \<Rightarrow> frame \<
 | tc_sproj [simp]: "lookup l ts = Some t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> SProj l : Record ts \<rightarrow> t"
 | tc_sinj [simp]: "lookup l ts = Some t \<Longrightarrow> (\<forall>tt \<in> set ts. \<Delta> \<turnstile>\<^sub>k tt) \<Longrightarrow> 
     \<Delta>,\<Gamma> \<turnstile> SInj l ts : t \<rightarrow> Variant ts"
+| tc_sfold [simp]: "Suc \<Delta> \<turnstile>\<^sub>k t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> SFold t : subst\<^sub>t\<^sub>t 0 (Inductive t) t \<rightarrow> Inductive t"
+| tc_unfold [simp]: "Suc \<Delta> \<turnstile>\<^sub>k t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> SUnfold t : Inductive t \<rightarrow> subst\<^sub>t\<^sub>t 0 (Inductive t) t"
 | tc_scase [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> SCase cs : Variant ts \<rightarrow> t"
 | tc_styapp [simp]: "\<Delta> \<turnstile>\<^sub>k t' \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> STyApp t' : Forall t \<rightarrow> subst\<^sub>t\<^sub>t 0 t' t"
 
@@ -29,6 +33,8 @@ inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> SRec vs nvs : t \<righta
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> SProj l : t \<rightarrow> t'"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> SInj l ts : t \<rightarrow> t'"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> SCase cs : t \<rightarrow> t'"
+inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> SFold tt : t \<rightarrow> t'"
+inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> SUnfold tt : t \<rightarrow> t'"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> STyApp tt : t \<rightarrow> t'"
 
 inductive typecheck_stack :: "nat \<Rightarrow> type list \<Rightarrow> frame list \<Rightarrow> type \<Rightarrow> type \<Rightarrow> bool" 
@@ -65,6 +71,14 @@ and unfold_f :: "expr list \<Rightarrow> expr list \<times> expr list \<times> f
     if is_value e 
     then ([], Case e cs)
     else cons_fst (SCase cs) (unfold e))"
+| "unfold (Fold t e) = (
+    if is_value e 
+    then ([], Fold t e)
+    else cons_fst (SFold t) (unfold e))"
+| "unfold (Unfold t e) = (
+    if is_value e 
+    then ([], Unfold t e)
+    else cons_fst (SUnfold t) (unfold e))"
 | "unfold (TyAbs e) = ([], TyAbs e)"
 | "unfold (TyApp e t) = (
     if is_value e 
@@ -83,6 +97,8 @@ fun fold' :: "frame \<Rightarrow> expr \<Rightarrow> expr" where
 | "fold' (SProj l) e = Proj e l"
 | "fold' (SInj l ts) e = Inj l ts e"
 | "fold' (SCase cs) e = Case e cs"
+| "fold' (SFold t) e = Fold t e"
+| "fold' (SUnfold t) e = Unfold t e"
 | "fold' (STyApp t) e = TyApp e t"
 
 fun fold :: "frame list \<Rightarrow> expr \<Rightarrow> expr" where
@@ -186,6 +202,33 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> unfold e =
         with tc_case obtain t' where T: "(\<Delta>,\<Gamma> \<turnstile>\<^sub>s s' : t' \<rightarrow> Variant ts) \<and> (\<Delta>,\<Gamma> \<turnstile> e' : t')" 
           by fastforce
         with tc_case S have "\<Delta>,\<Gamma> \<turnstile>\<^sub>s s : t' \<rightarrow> t" using tc_scase by fastforce
+        with T show ?thesis by fastforce
+      qed
+  next case (tc_fold \<Delta> \<Gamma> e t)
+    thus ?case
+      proof (cases "is_value e")
+      case True
+        with tc_fold show ?thesis by simp (metis tcs_nil typecheck_typecheck_fs_typecheck_cs.tc_fold)
+      next case False
+        with tc_fold obtain s' where S: "unfold e = (s', e') \<and> s = SFold t # s'"
+          by (auto split: prod.splits)
+        with tc_fold obtain t' where T: "(\<Delta>,\<Gamma> \<turnstile>\<^sub>s s' : t' \<rightarrow> subst\<^sub>t\<^sub>t 0 (Inductive t) t) \<and> 
+          (\<Delta>,\<Gamma> \<turnstile> e' : t')" by fastforce
+        with tc_fold S have "\<Delta>,\<Gamma> \<turnstile>\<^sub>s s : t' \<rightarrow> Inductive t" by fastforce
+        with T show ?thesis by fastforce
+      qed
+  next case (tc_unfold \<Delta> \<Gamma> e t)
+    thus ?case
+      proof (cases "is_value e")
+      case True
+        with tc_unfold show ?thesis 
+          by simp (metis tcs_nil typecheck_typecheck_fs_typecheck_cs.tc_unfold)
+      next case False
+        with tc_unfold obtain s' where S: "unfold e = (s', e') \<and> s = SUnfold t # s'"
+          by (auto split: prod.splits)
+        with tc_unfold obtain t' where T: "(\<Delta>,\<Gamma> \<turnstile>\<^sub>s s' : t' \<rightarrow> Inductive t) \<and> 
+          (\<Delta>,\<Gamma> \<turnstile> e' : t')" by fastforce
+        with tc_unfold S have "\<Delta>,\<Gamma> \<turnstile>\<^sub>s s : t' \<rightarrow> subst\<^sub>t\<^sub>t 0 (Inductive t) t" by fastforce
         with T show ?thesis by fastforce
       qed
   next case (tc_tyabs \<Delta> \<Gamma> e t)

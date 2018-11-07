@@ -14,6 +14,10 @@ inductive typecheck :: "nat \<Rightarrow> type list \<Rightarrow> expr \<Rightar
 | tc_inj [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<forall>tt \<in> set ts. \<Delta> \<turnstile>\<^sub>k tt \<Longrightarrow> 
     \<Delta>,\<Gamma> \<turnstile> Inj l ts e : Variant ts"
 | tc_case [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Variant ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Case e cs : t"
+| tc_fold [simp]: "\<Delta>,\<Gamma> \<turnstile> e : subst\<^sub>t\<^sub>t 0 (Inductive t) t \<Longrightarrow> Suc \<Delta> \<turnstile>\<^sub>k t \<Longrightarrow> 
+    \<Delta>,\<Gamma> \<turnstile> Fold t e : Inductive t"
+| tc_unfold [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Inductive t \<Longrightarrow> Suc \<Delta> \<turnstile>\<^sub>k t \<Longrightarrow> 
+    \<Delta>,\<Gamma> \<turnstile> Unfold t e : subst\<^sub>t\<^sub>t 0 (Inductive t) t"
 | tc_tyabs [simp]: "Suc \<Delta>,map (incr\<^sub>t\<^sub>t 0) \<Gamma> \<turnstile> e : t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> TyAbs e : Forall t"
 | tc_tyapp [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Forall t \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t' \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> TyApp e t' : subst\<^sub>t\<^sub>t 0 t' t"
 | tcf_nil [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f [] : []"
@@ -29,6 +33,8 @@ inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Rec fs : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Proj e l : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Inj e ts l : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Case e cs : t"
+inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Fold t' e : t"
+inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Unfold t' e : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> TyAbs e : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> TyApp e t' : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f [] : ts"
@@ -46,6 +52,10 @@ lemma canonical_record [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Record ts \<L
 lemma canonical_variant [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Variant ts \<Longrightarrow> is_value e \<Longrightarrow> 
     \<exists>l e'. e = Inj l ts e' \<and> is_value e' \<and> l < length ts"
   by (induction \<Gamma> e "Variant ts" rule: typecheck_typecheck_fs_typecheck_cs.inducts(1)) auto
+
+lemma canonical_inductive [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Inductive t \<Longrightarrow> is_value e \<Longrightarrow> 
+    \<exists>e'. e = Fold t e' \<and> is_value e'"
+  by (induction \<Gamma> e "Inductive t" rule: typecheck_typecheck_fs_typecheck_cs.inducts(1)) auto
 
 lemma canonical_forall [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Forall t \<Longrightarrow> is_value e \<Longrightarrow> \<exists>e'. e = TyAbs e'"
   by (induction \<Gamma> e "Forall t" rule: typecheck_typecheck_fs_typecheck_cs.inducts(1)) auto
@@ -80,6 +90,16 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> Suc \<Delt
     moreover from tc_case have "Suc \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile>\<^sub>c map (incr\<^sub>t\<^sub>e x) cs : 
       map (incr\<^sub>t\<^sub>t x) ts \<rightarrow> incr\<^sub>t\<^sub>t x t" by simp
     ultimately show ?case by simp
+  next case (tc_fold \<Delta> \<Gamma> e t)
+    hence "Suc \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> incr\<^sub>t\<^sub>e x e : 
+      subst\<^sub>t\<^sub>t 0 (incr\<^sub>t\<^sub>t x (Inductive t)) (incr\<^sub>t\<^sub>t (Suc x) t)" by (metis le0 subst_incr_swap)
+    with tc_fold show ?case by simp
+  next case (tc_unfold \<Delta> \<Gamma> e t)
+    hence "Suc \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> Unfold (incr\<^sub>t\<^sub>t (Suc x) t) (incr\<^sub>t\<^sub>e x e) : 
+      subst\<^sub>t\<^sub>t 0 (incr\<^sub>t\<^sub>t x (Inductive t)) (incr\<^sub>t\<^sub>t (Suc x) t)" by simp
+    hence "Suc \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> Unfold (incr\<^sub>t\<^sub>t (Suc x) t) (incr\<^sub>t\<^sub>e x e) : 
+      incr\<^sub>t\<^sub>t x (subst\<^sub>t\<^sub>t 0 (Inductive t) t)" by (metis le0 subst_incr_swap)
+    thus ?case by simp
   next case (tc_tyapp \<Delta> \<Gamma> e t t')
     hence "Suc \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> incr\<^sub>t\<^sub>e x e : Forall (incr\<^sub>t\<^sub>t (Suc x) t)" by simp 
     moreover from tc_tyapp have "Suc \<Delta> \<turnstile>\<^sub>k incr\<^sub>t\<^sub>t x t'" by simp

@@ -7,6 +7,7 @@ datatype type =
 | Arrow type type
 | Record "type list"
 | Variant "type list"
+| Inductive type
 | Forall type
 
 primrec incr\<^sub>t\<^sub>t :: "nat \<Rightarrow> type \<Rightarrow> type" where
@@ -14,6 +15,7 @@ primrec incr\<^sub>t\<^sub>t :: "nat \<Rightarrow> type \<Rightarrow> type" wher
 | "incr\<^sub>t\<^sub>t x (Arrow t\<^sub>1 t\<^sub>2) = Arrow (incr\<^sub>t\<^sub>t x t\<^sub>1) (incr\<^sub>t\<^sub>t x t\<^sub>2)"
 | "incr\<^sub>t\<^sub>t x (Record ts) = Record (map (incr\<^sub>t\<^sub>t x) ts)"
 | "incr\<^sub>t\<^sub>t x (Variant ts) = Variant (map (incr\<^sub>t\<^sub>t x) ts)"
+| "incr\<^sub>t\<^sub>t x (Inductive t) = Inductive (incr\<^sub>t\<^sub>t (Suc x) t)"
 | "incr\<^sub>t\<^sub>t x (Forall t) = Forall (incr\<^sub>t\<^sub>t (Suc x) t)"
 
 primrec subst\<^sub>t\<^sub>t :: "nat \<Rightarrow> type \<Rightarrow> type \<Rightarrow> type" where
@@ -21,6 +23,7 @@ primrec subst\<^sub>t\<^sub>t :: "nat \<Rightarrow> type \<Rightarrow> type \<Ri
 | "subst\<^sub>t\<^sub>t x t' (Arrow t\<^sub>1 t\<^sub>2) = Arrow (subst\<^sub>t\<^sub>t x t' t\<^sub>1) (subst\<^sub>t\<^sub>t x t' t\<^sub>2)"
 | "subst\<^sub>t\<^sub>t x t' (Record ts) = Record (map (subst\<^sub>t\<^sub>t x t') ts)"
 | "subst\<^sub>t\<^sub>t x t' (Variant ts) = Variant (map (subst\<^sub>t\<^sub>t x t') ts)"
+| "subst\<^sub>t\<^sub>t x t' (Inductive t) = Inductive (subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t 0 t') t)"
 | "subst\<^sub>t\<^sub>t x t' (Forall t) = Forall (subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t 0 t') t)"
 
 lemma [simp]: "y \<le> x \<Longrightarrow> incr\<^sub>t\<^sub>t y (incr\<^sub>t\<^sub>t x t) = incr\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t y t)"
@@ -29,16 +32,11 @@ lemma [simp]: "y \<le> x \<Longrightarrow> incr\<^sub>t\<^sub>t y (incr\<^sub>t\
 lemma [simp]: "y \<le> x \<Longrightarrow> incr\<^sub>t\<^sub>t y o incr\<^sub>t\<^sub>t x = incr\<^sub>t\<^sub>t (Suc x) o incr\<^sub>t\<^sub>t y"
   by rule simp
 
-lemma [simp]: "y \<le> x \<Longrightarrow> subst\<^sub>t\<^sub>t y (incr\<^sub>t\<^sub>t x t') (incr\<^sub>t\<^sub>t (Suc x) t) = incr\<^sub>t\<^sub>t x (subst\<^sub>t\<^sub>t y t' t)" 
+lemma subst_incr_swap [simp]: "y \<le> x \<Longrightarrow> 
+    subst\<^sub>t\<^sub>t y (incr\<^sub>t\<^sub>t x t') (incr\<^sub>t\<^sub>t (Suc x) t) = incr\<^sub>t\<^sub>t x (subst\<^sub>t\<^sub>t y t' t)" 
   by (induction t arbitrary: x y t') auto
 
 lemma [simp]: "y \<le> x \<Longrightarrow> subst\<^sub>t\<^sub>t y (incr\<^sub>t\<^sub>t x t') o incr\<^sub>t\<^sub>t (Suc x) = incr\<^sub>t\<^sub>t x o subst\<^sub>t\<^sub>t y t'" 
-  by rule simp
-
-lemma [simp]: "y \<le> x \<Longrightarrow> incr\<^sub>t\<^sub>t y (subst\<^sub>t\<^sub>t x t' t) = subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t y t') (incr\<^sub>t\<^sub>t y t)"
-  by (induction t arbitrary: x y t') auto
-
-lemma [simp]: "y \<le> x \<Longrightarrow> incr\<^sub>t\<^sub>t y \<circ> subst\<^sub>t\<^sub>t x t' = subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t y t') \<circ> incr\<^sub>t\<^sub>t y"
   by rule simp
 
 lemma [simp]: "subst\<^sub>t\<^sub>t x t' (incr\<^sub>t\<^sub>t x t) = t"
@@ -52,8 +50,18 @@ lemma [simp]: "subst\<^sub>t\<^sub>t x t' (incr\<^sub>t\<^sub>t x t) = t"
 lemma [simp]: "subst\<^sub>t\<^sub>t x t' o incr\<^sub>t\<^sub>t x = id"
   by rule simp
 
+lemma [simp]: "y \<le> x \<Longrightarrow> incr\<^sub>t\<^sub>t y (subst\<^sub>t\<^sub>t x t' t) = subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t y t') (incr\<^sub>t\<^sub>t y t)"
+  by (induction t arbitrary: x y t') auto
+
+lemma [simp]: "y \<le> x \<Longrightarrow> incr\<^sub>t\<^sub>t y \<circ> subst\<^sub>t\<^sub>t x t' = subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t y t') \<circ> incr\<^sub>t\<^sub>t y"
+  by rule simp
+
 lemma [simp]: "y \<le> x \<Longrightarrow> 
     subst\<^sub>t\<^sub>t x t\<^sub>1' (subst\<^sub>t\<^sub>t y t\<^sub>2' t) = subst\<^sub>t\<^sub>t y (subst\<^sub>t\<^sub>t x t\<^sub>1' t\<^sub>2') (subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t y t\<^sub>1') t)"
   by (induction t arbitrary: x y t\<^sub>1' t\<^sub>2') auto
+
+lemma [simp]: "y \<le> x \<Longrightarrow> 
+    subst\<^sub>t\<^sub>t x t\<^sub>1' o subst\<^sub>t\<^sub>t y t\<^sub>2' = subst\<^sub>t\<^sub>t y (subst\<^sub>t\<^sub>t x t\<^sub>1' t\<^sub>2') o subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t y t\<^sub>1')"
+  by rule simp
 
 end

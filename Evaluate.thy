@@ -6,6 +6,7 @@ inductive reduce :: "expr \<Rightarrow> expr \<Rightarrow> bool" (infix "\<leads
   ev_beta [simp]: "is_value e\<^sub>2 \<Longrightarrow> App (Abs t e\<^sub>1) e\<^sub>2 \<leadsto>\<^sub>\<beta> subst\<^sub>e\<^sub>e 0 e\<^sub>2 e\<^sub>1" 
 | ev_proj [simp]: "is_value_f fs \<Longrightarrow> lookup l fs = Some e \<Longrightarrow> Proj (Rec fs) l \<leadsto>\<^sub>\<beta> e" 
 | ev_case [simp]: "is_value e \<Longrightarrow> lookup l cs = Some e' \<Longrightarrow> Case (Inj l ts e) cs \<leadsto>\<^sub>\<beta> subst\<^sub>e\<^sub>e 0 e e'" 
+| ev_fold [simp]: "is_value e \<Longrightarrow> Unfold t (Fold t e) \<leadsto>\<^sub>\<beta> e" 
 | ev_tbeta [simp]: "TyApp (TyAbs e) t \<leadsto>\<^sub>\<beta> subst\<^sub>t\<^sub>e 0 t e" 
 
 inductive evaluate :: "expr \<Rightarrow> expr \<Rightarrow> bool" (infix "\<leadsto>" 60) where
@@ -48,6 +49,14 @@ theorem [simp]: "\<Delta>,[] \<turnstile> e : t \<Longrightarrow> unfold e = (s,
           by fastforce
         moreover with tc_case obtain r' where "lookup l cs = Some r'" by fastforce
         ultimately show ?thesis using ev_case by blast
+      qed (auto split: prod.splits)
+  next case (tc_unfold \<Delta> e t)
+    thus ?case
+      proof (cases "is_value e")
+      case True
+        with tc_unfold obtain e' where "r = Unfold t (Fold t e') \<and> is_value e'" by fastforce
+        hence "r \<leadsto>\<^sub>\<beta> e'" by simp
+        thus ?thesis by blast
       qed (auto split: prod.splits)
   next case (tc_tyapp \<Delta> e t t')
     thus ?case

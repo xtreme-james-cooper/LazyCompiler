@@ -4,6 +4,7 @@ begin
 
 inductive reduce :: "expr \<Rightarrow> expr \<Rightarrow> bool" (infix "\<leadsto>\<^sub>\<beta>" 60) where
   ev_beta [simp]: "is_value e\<^sub>2 \<Longrightarrow> App (Abs t e\<^sub>1) e\<^sub>2 \<leadsto>\<^sub>\<beta> subst\<^sub>e\<^sub>e 0 e\<^sub>2 e\<^sub>1" 
+| ev_let [simp]: "is_value e\<^sub>1 \<Longrightarrow> Let e\<^sub>1 e\<^sub>2 \<leadsto>\<^sub>\<beta> subst\<^sub>e\<^sub>e 0 e\<^sub>1 e\<^sub>2"
 | ev_proj [simp]: "is_value_f fs \<Longrightarrow> lookup l fs = Some e \<Longrightarrow> Proj (Rec fs) l \<leadsto>\<^sub>\<beta> e" 
 | ev_case [simp]: "is_value e \<Longrightarrow> lookup l cs = Some e' \<Longrightarrow> Case (Inj l ts e) cs \<leadsto>\<^sub>\<beta> subst\<^sub>e\<^sub>e 0 e e'" 
 | ev_fold [simp]: "is_value e \<Longrightarrow> Unfold t (Fold t e) \<leadsto>\<^sub>\<beta> e" 
@@ -31,6 +32,13 @@ theorem [simp]: "\<Delta>,[] \<turnstile> e : t \<Longrightarrow> unfold e = (s,
             moreover with tc_app T obtain e\<^sub>1' where "r = App (Abs t\<^sub>1 e\<^sub>1') e\<^sub>2" by fastforce
             ultimately show ?thesis using ev_beta by blast
           qed (auto split: prod.splits)
+      qed (auto split: prod.splits)
+  next case (tc_let \<Delta> e\<^sub>1 t\<^sub>1 e\<^sub>2 t\<^sub>2)
+    thus ?case
+      proof (cases "is_value e\<^sub>1")
+      case True
+        moreover with tc_let have "r = Let e\<^sub>1 e\<^sub>2" by simp
+        ultimately show ?thesis using ev_let by blast
       qed (auto split: prod.splits)
   next case (tc_proj \<Delta> e ts l t)
     thus ?case 

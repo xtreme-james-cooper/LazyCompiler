@@ -5,6 +5,7 @@ begin
 datatype frame = 
   SApp1 expr
 | SApp2 expr
+| SLet expr
 | SRec "expr list" "expr list" 
 | SProj nat
 | SInj nat "type list"
@@ -17,6 +18,7 @@ inductive typecheck_frame :: "nat \<Rightarrow> type list \<Rightarrow> frame \<
     (infix ",_ \<turnstile> _ : _ \<rightarrow>" 60) where
   tc_sapp1 [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t\<^sub>1 \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> SApp1 e : Arrow t\<^sub>1 t\<^sub>2 \<rightarrow> t\<^sub>2"
 | tc_sapp2 [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Arrow t\<^sub>1 t\<^sub>2 \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> SApp2 e : t\<^sub>1 \<rightarrow> t\<^sub>2"
+| tc_slet [simp]: "\<Delta>,insert_at 0 t\<^sub>1 \<Gamma> \<turnstile> e : t\<^sub>2 \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> SLet e : t\<^sub>1 \<rightarrow> t\<^sub>2"
 | tc_srec [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f vs : vts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>f nvs : nvts \<Longrightarrow> 
     \<Delta>,\<Gamma> \<turnstile> SRec vs nvs : t \<rightarrow> Record (vts @ [t] @ nvts)"
 | tc_sproj [simp]: "lookup l ts = Some t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> SProj l : Record ts \<rightarrow> t"
@@ -29,6 +31,7 @@ inductive typecheck_frame :: "nat \<Rightarrow> type list \<Rightarrow> frame \<
 
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> SApp1 e : t \<rightarrow> t'"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> SApp2 e : t \<rightarrow> t'"
+inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> SLet e : t \<rightarrow> t'"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> SRec vs nvs : t \<rightarrow> t'"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> SProj l : t \<rightarrow> t'"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> SInj l ts : t \<rightarrow> t'"
@@ -55,6 +58,10 @@ and unfold_f :: "expr list \<Rightarrow> expr list \<times> expr list \<times> f
          then ([], App e\<^sub>1 e\<^sub>2)
          else cons_fst (SApp2 e\<^sub>1) (unfold e\<^sub>2)
     else cons_fst (SApp1 e\<^sub>2) (unfold e\<^sub>1))"
+| "unfold (Let e\<^sub>1 e\<^sub>2) = (
+    if is_value e\<^sub>1
+    then ([], Let e\<^sub>1 e\<^sub>2) 
+    else cons_fst (SLet e\<^sub>2) (unfold e\<^sub>1))"
 | "unfold (Rec fs) = (
     if is_value_f fs 
     then ([], Rec fs) 
@@ -93,6 +100,7 @@ and unfold_f :: "expr list \<Rightarrow> expr list \<times> expr list \<times> f
 fun fold' :: "frame \<Rightarrow> expr \<Rightarrow> expr" where
   "fold' (SApp1 e') e = App e e'"
 | "fold' (SApp2 e') e = App e' e"
+| "fold' (SLet e') e = Let e e'"
 | "fold' (SRec vs nvs) e = Rec (vs @ [e] @ nvs)"
 | "fold' (SProj l) e = Proj e l"
 | "fold' (SInj l ts) e = Inj l ts e"
@@ -152,6 +160,18 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> unfold e =
       qed
   next case (tc_abs \<Delta> t\<^sub>1 \<Gamma> e t\<^sub>2)
     thus ?case by simp (metis tcs_nil typecheck_typecheck_fs_typecheck_cs.tc_abs)
+  next case (tc_let \<Delta> \<Gamma> e\<^sub>1 t\<^sub>1 e\<^sub>2 t\<^sub>2)
+    thus ?case
+      proof (cases "is_value e\<^sub>1")
+      case True
+        with tc_let show ?thesis by simp (metis tcs_nil typecheck_typecheck_fs_typecheck_cs.tc_let)
+      next case False
+        with tc_let obtain s' where S: "unfold e\<^sub>1 = (s', e') \<and> s = SLet e\<^sub>2 # s'"
+          by (auto split: prod.splits)
+        with tc_let obtain t' where "(\<Delta>,\<Gamma> \<turnstile>\<^sub>s s' : t' \<rightarrow> t\<^sub>1) \<and> (\<Delta>,\<Gamma> \<turnstile> e' : t')" by fastforce
+        moreover with tc_let S have X: "\<Delta>,\<Gamma> \<turnstile>\<^sub>s s : t' \<rightarrow> t\<^sub>2" by fastforce
+        ultimately show ?thesis by fastforce
+      qed
   next case (tc_rec \<Delta> \<Gamma> fs ts)
     thus ?case 
       proof (cases "is_value_f fs")

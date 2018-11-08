@@ -9,6 +9,7 @@ inductive typecheck :: "nat \<Rightarrow> type list \<Rightarrow> expr \<Rightar
   tc_var [simp]: "lookup x \<Gamma> = Some t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Var x : t"
 | tc_abs [simp]: "\<Delta>,insert_at 0 t\<^sub>1 \<Gamma> \<turnstile> e : t\<^sub>2 \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t\<^sub>1 \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Abs t\<^sub>1 e : Arrow t\<^sub>1 t\<^sub>2"
 | tc_app [simp]: "\<Delta>,\<Gamma> \<turnstile> e\<^sub>1 : Arrow t\<^sub>1 t\<^sub>2 \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e\<^sub>2 : t\<^sub>1 \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> App e\<^sub>1 e\<^sub>2 : t\<^sub>2"
+| tc_let [simp]: "\<Delta>,\<Gamma> \<turnstile> e\<^sub>1 : t\<^sub>1 \<Longrightarrow> \<Delta>,insert_at 0 t\<^sub>1 \<Gamma> \<turnstile> e\<^sub>2 : t\<^sub>2 \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Let e\<^sub>1 e\<^sub>2 : t\<^sub>2"
 | tc_rec [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Rec fs : Record ts"
 | tc_proj [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Record ts \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Proj e l : t"
 | tc_inj [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<forall>tt \<in> set ts. \<Delta> \<turnstile>\<^sub>k tt \<Longrightarrow> 
@@ -29,6 +30,7 @@ inductive typecheck :: "nat \<Rightarrow> type list \<Rightarrow> expr \<Rightar
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Var x : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Abs t\<^sub>1 e : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> App e\<^sub>1 e\<^sub>2 : t"
+inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Let e\<^sub>1 e\<^sub>2 : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Rec fs : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Proj e l : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Inj e ts l : t"
@@ -75,6 +77,10 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> Suc \<Delt
   case (tc_app \<Delta> \<Gamma> e\<^sub>1 t\<^sub>1 t\<^sub>2 e\<^sub>2)
     hence "Suc \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> incr\<^sub>t\<^sub>e x e\<^sub>1 : Arrow (incr\<^sub>t\<^sub>t x t\<^sub>1) (incr\<^sub>t\<^sub>t x t\<^sub>2)" by simp
     moreover from tc_app have "Suc \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> incr\<^sub>t\<^sub>e x e\<^sub>2 : incr\<^sub>t\<^sub>t x t\<^sub>1" by simp
+    ultimately show ?case by simp
+  next case (tc_let \<Delta> \<Gamma> e\<^sub>1 t\<^sub>1 e\<^sub>2 t\<^sub>2)
+    hence "Suc \<Delta>,insert_at 0 (incr\<^sub>t\<^sub>t x t\<^sub>1) (map (incr\<^sub>t\<^sub>t x) \<Gamma>) \<turnstile> incr\<^sub>t\<^sub>e x e\<^sub>2 : incr\<^sub>t\<^sub>t x t\<^sub>2" by simp
+    moreover from tc_let have "Suc \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> incr\<^sub>t\<^sub>e x e\<^sub>1 : incr\<^sub>t\<^sub>t x t\<^sub>1" by simp
     ultimately show ?case by simp
   next case (tc_proj \<Delta> \<Gamma> e ts l t)
     hence "Suc \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> incr\<^sub>t\<^sub>e x e : Record (map (incr\<^sub>t\<^sub>t x) ts)" by simp
@@ -129,6 +135,10 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> le
   case (tc_app \<Delta> \<Gamma> e\<^sub>1 t\<^sub>1 t\<^sub>2 e\<^sub>2)
     hence "\<Delta>,insert_at x t' \<Gamma> \<turnstile> incr\<^sub>e\<^sub>e x e\<^sub>1 : Arrow t\<^sub>1 t\<^sub>2" by simp
     moreover from tc_app have "\<Delta>,insert_at x t' \<Gamma> \<turnstile> incr\<^sub>e\<^sub>e x e\<^sub>2 : t\<^sub>1" by simp
+    ultimately show ?case by simp
+  next case (tc_let \<Delta> \<Gamma> e\<^sub>1 t\<^sub>1 e\<^sub>2 t\<^sub>2)
+    hence "\<Delta>,insert_at 0 t\<^sub>1 (insert_at x t' \<Gamma>) \<turnstile> incr\<^sub>e\<^sub>e (Suc x) e\<^sub>2 : t\<^sub>2" by simp
+    moreover from tc_let have "\<Delta>,insert_at x t' \<Gamma> \<turnstile> incr\<^sub>e\<^sub>e x e\<^sub>1 : t\<^sub>1" by simp
     ultimately show ?case by simp
   next case (tc_proj \<Delta> \<Gamma> e ts l t)
     hence "\<Delta>,insert_at x t' \<Gamma> \<turnstile> incr\<^sub>e\<^sub>e x e : Record ts" by simp

@@ -61,6 +61,7 @@ and unfold_f :: "expr list \<Rightarrow> expr list \<times> expr list \<times> f
     if is_value e 
     then ([], TyApp e t)
     else cons_fst (\<lambda>e. TyApp e t) (unfold e))"
+| "unfold (TyLet t e) = ([], TyLet t e)"
 | "unfold_f [] = undefined"
 | "unfold_f (e # fs) = (
     if is_value e
@@ -84,7 +85,6 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> f : t\<^sub>1 \<rightarrow> t\<^su
 
 lemma [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>s s : t' \<rightarrow> t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e : t' \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> fold s e : t"
   by (induction \<Gamma> s t' t rule: typecheck_stack.induct) auto
-
 
 lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> unfold e = (s, e') \<Longrightarrow> \<exists>t'. (\<Delta>,\<Gamma> \<turnstile>\<^sub>s s : t' \<rightarrow> t) \<and> (\<Delta>,\<Gamma> \<turnstile> e' : t')"
   and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> \<not> is_value_f fs \<Longrightarrow> unfold_f fs = (vs, nvs, s, e') \<Longrightarrow> 
@@ -227,6 +227,8 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> unfold e =
         with tc_tyapp have "\<Delta>,\<Gamma> \<turnstile>\<^sub>s (\<lambda>e. TyApp e t') # s' : tt \<rightarrow> subst\<^sub>t\<^sub>t 0 t' t" by fastforce
         with S T show ?thesis by fastforce
       qed
+  next case (tc_tylet \<Delta> \<Gamma> t' e t)
+    thus ?case by simp (metis tcs_nil typecheck_typecheck_fs_typecheck_cs.tc_tylet)
   next case (tcf_cons \<Delta> \<Gamma> e tt fs ts)
     thus ?case
       proof (cases "is_value e")

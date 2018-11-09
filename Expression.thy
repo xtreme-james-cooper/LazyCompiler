@@ -15,6 +15,7 @@ datatype expr =
 | Unfold type expr
 | TyAbs expr
 | TyApp expr type
+| TyLet type expr
 
 primrec incr\<^sub>t\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr" where
   "incr\<^sub>t\<^sub>e x (Var y) = Var y"
@@ -29,6 +30,7 @@ primrec incr\<^sub>t\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr" wher
 | "incr\<^sub>t\<^sub>e x (Unfold t e) = Unfold (incr\<^sub>t\<^sub>t (Suc x) t) (incr\<^sub>t\<^sub>e x e)"
 | "incr\<^sub>t\<^sub>e x (TyAbs e) = TyAbs (incr\<^sub>t\<^sub>e (Suc x) e)"
 | "incr\<^sub>t\<^sub>e x (TyApp e t) = TyApp (incr\<^sub>t\<^sub>e x e) (incr\<^sub>t\<^sub>t x t)"
+| "incr\<^sub>t\<^sub>e x (TyLet t e) = TyLet (incr\<^sub>t\<^sub>t x t) (incr\<^sub>t\<^sub>e (Suc x) e)"
 
 primrec subst\<^sub>t\<^sub>e :: "nat \<Rightarrow> type \<Rightarrow> expr \<Rightarrow> expr" where
   "subst\<^sub>t\<^sub>e x t' (Var y) = Var y"
@@ -43,6 +45,7 @@ primrec subst\<^sub>t\<^sub>e :: "nat \<Rightarrow> type \<Rightarrow> expr \<Ri
 | "subst\<^sub>t\<^sub>e x t' (Unfold t e) = Unfold (subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t 0 t') t) (subst\<^sub>t\<^sub>e x t' e)"
 | "subst\<^sub>t\<^sub>e x t' (TyAbs e) = TyAbs (subst\<^sub>t\<^sub>e (Suc x) (incr\<^sub>t\<^sub>t 0 t') e)"
 | "subst\<^sub>t\<^sub>e x t' (TyApp e t) = TyApp (subst\<^sub>t\<^sub>e x t' e) (subst\<^sub>t\<^sub>t x t' t)"
+| "subst\<^sub>t\<^sub>e x t' (TyLet t e) = TyLet (subst\<^sub>t\<^sub>t x t' t) (subst\<^sub>t\<^sub>e (Suc x) (incr\<^sub>t\<^sub>t 0 t') e)"
 
 primrec incr\<^sub>e\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr" where
   "incr\<^sub>e\<^sub>e x (Var y) = Var (if x \<le> y then Suc y else y)"
@@ -57,6 +60,7 @@ primrec incr\<^sub>e\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr" wher
 | "incr\<^sub>e\<^sub>e x (Unfold t e) = Unfold t (incr\<^sub>e\<^sub>e x e)"
 | "incr\<^sub>e\<^sub>e x (TyAbs e) = TyAbs (incr\<^sub>e\<^sub>e x e)"
 | "incr\<^sub>e\<^sub>e x (TyApp e t) = TyApp (incr\<^sub>e\<^sub>e x e) t"
+| "incr\<^sub>e\<^sub>e x (TyLet t e) = TyLet t (incr\<^sub>e\<^sub>e x e)"
 
 primrec subst\<^sub>e\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr \<Rightarrow> expr" where
   "subst\<^sub>e\<^sub>e x e' (Var y) = (if x = y then e' else Var (if x < y then y - 1 else y))"
@@ -71,6 +75,7 @@ primrec subst\<^sub>e\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr \<Ri
 | "subst\<^sub>e\<^sub>e x e' (Unfold t e) = Unfold t (subst\<^sub>e\<^sub>e x e' e)"
 | "subst\<^sub>e\<^sub>e x e' (TyAbs e) = TyAbs (subst\<^sub>e\<^sub>e x (incr\<^sub>t\<^sub>e 0 e') e)"
 | "subst\<^sub>e\<^sub>e x e' (TyApp e t) = TyApp (subst\<^sub>e\<^sub>e x e' e) t"
+| "subst\<^sub>e\<^sub>e x e' (TyLet t e) = TyLet t (subst\<^sub>e\<^sub>e x (incr\<^sub>t\<^sub>e 0 e') e)"
 
 primrec is_value :: "expr \<Rightarrow> bool" 
     and is_value_f :: "expr list \<Rightarrow> bool" where
@@ -86,6 +91,7 @@ primrec is_value :: "expr \<Rightarrow> bool"
 | "is_value (Unfold t e) = False"
 | "is_value (TyAbs e) = True"
 | "is_value (TyApp e t) = False"
+| "is_value (TyLet t e) = False"
 | "is_value_f [] = True"
 | "is_value_f (e # fs) = (is_value e \<and> is_value_f fs)"
 

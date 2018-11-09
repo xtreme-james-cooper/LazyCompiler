@@ -9,6 +9,7 @@ inductive reduce :: "expr \<Rightarrow> expr \<Rightarrow> bool" (infix "\<leads
 | ev_case [simp]: "is_value e \<Longrightarrow> lookup l cs = Some e' \<Longrightarrow> Case (Inj l ts e) cs \<leadsto>\<^sub>\<beta> subst\<^sub>e\<^sub>e 0 e e'" 
 | ev_fold [simp]: "is_value e \<Longrightarrow> Unfold t (Fold t e) \<leadsto>\<^sub>\<beta> e" 
 | ev_tbeta [simp]: "TyApp (TyAbs e) t \<leadsto>\<^sub>\<beta> subst\<^sub>t\<^sub>e 0 t e" 
+| ev_tlet [simp]: "TyLet t e \<leadsto>\<^sub>\<beta> subst\<^sub>t\<^sub>e 0 t e" 
 
 inductive evaluate :: "expr \<Rightarrow> expr \<Rightarrow> bool" (infix "\<leadsto>" 60) where
   ev_stack [simp]: "unfold e = (s, r) \<Longrightarrow> r \<leadsto>\<^sub>\<beta> r' \<Longrightarrow> e \<leadsto> fold s r'"
@@ -74,6 +75,9 @@ theorem [simp]: "\<Delta>,[] \<turnstile> e : t \<Longrightarrow> unfold e = (s,
         with tc_tyapp True have "r \<leadsto>\<^sub>\<beta> subst\<^sub>t\<^sub>e 0 t' e'" by fastforce
         thus ?thesis by fastforce
       qed (auto split: prod.splits)
+  next case (tc_tylet \<Delta> t' e t)
+    moreover have "TyLet t' e \<leadsto>\<^sub>\<beta> subst\<^sub>t\<^sub>e 0 t' e" by simp
+    ultimately show ?case by fastforce
   next case (tcc_cons t' e t fs ts)
     thus ?case by (induction l) simp_all
   qed (auto split: if_splits prod.splits)

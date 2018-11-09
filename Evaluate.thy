@@ -1,5 +1,5 @@
 theory Evaluate
-imports Stack
+imports EvaluationContext
 begin
 
 inductive reduce :: "expr \<Rightarrow> expr \<Rightarrow> bool" (infix "\<leadsto>\<^sub>\<beta>" 60) where
@@ -110,7 +110,7 @@ lemma preservation\<^sub>\<beta>: "e \<leadsto>\<^sub>\<beta> e' \<Longrightarro
 theorem preservation: "e \<leadsto> e' \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e' : t"
   proof (induction e e' rule: evaluate.induct)
   case (ev_stack e s r r')
-    then obtain t' where "(\<Delta>,\<Gamma> \<turnstile>\<^sub>s s : t' \<rightarrow> t) \<and> \<Delta>,\<Gamma> \<turnstile> r : t'" by fastforce
+    then obtain t' where "(\<Delta>,\<Gamma> \<turnstile>\<^sub>e\<^sub>c s : t' \<rightarrow> t) \<and> \<Delta>,\<Gamma> \<turnstile> r : t'" by fastforce
     moreover with ev_stack have "\<Delta>,\<Gamma> \<turnstile> r' : t'" using preservation\<^sub>\<beta> by simp
     ultimately show ?case by fastforce
   qed

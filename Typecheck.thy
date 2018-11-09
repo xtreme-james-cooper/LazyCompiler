@@ -67,7 +67,8 @@ lemma canonical_forall [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Forall t \<Lo
 lemma [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<exists>e. lookup l fs = Some e"
   by (induction l fs arbitrary: ts rule: lookup.induct) auto
 
-lemma [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f vs : vts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>f nvs : nvts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>f vs @ nvs : vts @ nvts"
+lemma typecheck_list_append [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f vs : vts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>f nvs : nvts \<Longrightarrow> 
+    \<Delta>,\<Gamma> \<turnstile>\<^sub>f vs @ nvs : vts @ nvts"
   by (induction \<Gamma> vs vts rule: typecheck_typecheck_fs_typecheck_cs.inducts(2)) simp_all
 
 lemma [simp]: "subst\<^sub>t\<^sub>e x t (incr\<^sub>t\<^sub>e x e) = e"

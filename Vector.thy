@@ -47,4 +47,13 @@ lemma [simp]: "lookup x (map f as) = map_option f (lookup x as)"
 lemma [elim]: "lookup x as = Some a \<Longrightarrow> x < length as"
   by (induction x as rule: lookup.induct) simp_all
 
+lemma [simp]: "x < length as \<Longrightarrow> \<exists>a. lookup x as = Some a"
+  by (induction x as rule: lookup.induct) simp_all
+
+lemma [elim]: "lookup x as = Some a \<Longrightarrow> lookup x (as @ bs) = Some a"
+  by (induction x as rule: lookup.induct) simp_all
+
+lemma [simp]: "x \<le> length as \<Longrightarrow> insert_at x a as @ bs = insert_at x a (as @ bs)"
+  by (induction x a as rule: insert_at.induct, cases bs) simp_all
+
 end

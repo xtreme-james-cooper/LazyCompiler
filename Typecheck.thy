@@ -1,5 +1,5 @@
 theory Typecheck
-imports Expression Kindcheck
+imports Expression TypeEquivalence
 begin
 
 inductive typecheck :: "kind list \<Rightarrow> type list \<Rightarrow> expr \<Rightarrow> type \<Rightarrow> bool" (infix ",_ \<turnstile> _ :" 60) 

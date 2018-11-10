@@ -2,7 +2,9 @@ theory Type
 imports Main
 begin
 
-datatype kind = Star
+datatype kind = 
+  Star
+| KArrow kind kind
 
 datatype type = 
   TyVar nat
@@ -11,6 +13,8 @@ datatype type =
 | Variant "type list"
 | Inductive kind type
 | Forall kind type
+| AbsTy kind type
+| AppTy type type
 
 primrec incr\<^sub>t\<^sub>t :: "nat \<Rightarrow> type \<Rightarrow> type" where
   "incr\<^sub>t\<^sub>t x (TyVar y) = TyVar (if x \<le> y then Suc y else y)"
@@ -19,6 +23,8 @@ primrec incr\<^sub>t\<^sub>t :: "nat \<Rightarrow> type \<Rightarrow> type" wher
 | "incr\<^sub>t\<^sub>t x (Variant ts) = Variant (map (incr\<^sub>t\<^sub>t x) ts)"
 | "incr\<^sub>t\<^sub>t x (Inductive k t) = Inductive k (incr\<^sub>t\<^sub>t (Suc x) t)"
 | "incr\<^sub>t\<^sub>t x (Forall k t) = Forall k (incr\<^sub>t\<^sub>t (Suc x) t)"
+| "incr\<^sub>t\<^sub>t x (AbsTy k t) = AbsTy k (incr\<^sub>t\<^sub>t (Suc x) t)"
+| "incr\<^sub>t\<^sub>t x (AppTy t\<^sub>1 t\<^sub>2) = AppTy (incr\<^sub>t\<^sub>t x t\<^sub>1) (incr\<^sub>t\<^sub>t x t\<^sub>2)"
 
 primrec subst\<^sub>t\<^sub>t :: "nat \<Rightarrow> type \<Rightarrow> type \<Rightarrow> type" where
   "subst\<^sub>t\<^sub>t x t' (TyVar y) = (if x = y then t' else TyVar (if x < y then y - 1 else y))"
@@ -27,6 +33,8 @@ primrec subst\<^sub>t\<^sub>t :: "nat \<Rightarrow> type \<Rightarrow> type \<Ri
 | "subst\<^sub>t\<^sub>t x t' (Variant ts) = Variant (map (subst\<^sub>t\<^sub>t x t') ts)"
 | "subst\<^sub>t\<^sub>t x t' (Inductive k t) = Inductive k (subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t 0 t') t)"
 | "subst\<^sub>t\<^sub>t x t' (Forall k t) = Forall k (subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t 0 t') t)"
+| "subst\<^sub>t\<^sub>t x t' (AbsTy k t) = AbsTy k (subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t 0 t') t)"
+| "subst\<^sub>t\<^sub>t x t' (AppTy t\<^sub>1 t\<^sub>2) = AppTy (subst\<^sub>t\<^sub>t x t' t\<^sub>1) (subst\<^sub>t\<^sub>t x t' t\<^sub>2)"
 
 lemma [simp]: "y \<le> x \<Longrightarrow> incr\<^sub>t\<^sub>t y (incr\<^sub>t\<^sub>t x t) = incr\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t y t)"
   by (induction t arbitrary: x y) simp_all

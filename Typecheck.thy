@@ -209,4 +209,15 @@ lemma [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<
     \<Delta>,insert_at 0 t' \<Gamma> \<turnstile> e : t" 
   by (induction l cs arbitrary: ts rule: lookup.induct) auto
 
+lemma [elim]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e : t' \<Longrightarrow> t = t'"
+  and [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts' \<Longrightarrow> ts = ts'"
+  and "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> True"
+  proof (induction \<Delta> \<Gamma> e t and \<Delta> \<Gamma> fs ts and \<Delta> \<Gamma> cs ts t arbitrary: t' ts' and t' ts' and
+         rule: typecheck_typecheck_fs_typecheck_cs.inducts) 
+  case tc_var
+    thus ?case by fastforce
+  next case tc_proj
+    thus ?case by fastforce
+  qed blast+
+
 end

@@ -1,26 +1,30 @@
 theory Kindcheck
-imports Type
+imports Type Vector
 begin
 
-inductive kinding :: "nat \<Rightarrow> type \<Rightarrow> bool" (infix "\<turnstile>\<^sub>k" 60) where
-  k_var [simp]: "x < \<Delta> \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k TyVar x"
-| k_arrow [simp]: "\<Delta> \<turnstile>\<^sub>k t\<^sub>1 \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t\<^sub>2 \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Arrow t\<^sub>1 t\<^sub>2"
-| k_record [simp]: "(\<forall>t \<in> set ts. \<Delta> \<turnstile>\<^sub>k t) \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Record ts"
-| k_variant [simp]: "(\<forall>t \<in> set ts. \<Delta> \<turnstile>\<^sub>k t) \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Variant ts"
-| k_inductive [simp]: "Suc \<Delta> \<turnstile>\<^sub>k t \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Inductive t"
-| k_forall [simp]: "Suc \<Delta> \<turnstile>\<^sub>k t \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Forall t"
+inductive kinding :: "kind list \<Rightarrow> type \<Rightarrow> kind \<Rightarrow> bool" (infix "\<turnstile>\<^sub>k _ :" 60) where
+  k_var [simp]: "lookup x \<Delta> = Some k \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k TyVar x : k"
+| k_arrow [simp]: "\<Delta> \<turnstile>\<^sub>k t\<^sub>1 : Star \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t\<^sub>2 : Star \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Arrow t\<^sub>1 t\<^sub>2 : Star"
+| k_record [simp]: "(\<forall>t \<in> set ts. \<Delta> \<turnstile>\<^sub>k t : Star) \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Record ts : Star"
+| k_variant [simp]: "(\<forall>t \<in> set ts. \<Delta> \<turnstile>\<^sub>k t : Star) \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Variant ts : Star"
+| k_inductive [simp]: "insert_at 0 k \<Delta> \<turnstile>\<^sub>k t : Star \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Inductive k t : Star"
+| k_forall [simp]: "insert_at 0 k \<Delta> \<turnstile>\<^sub>k t : Star \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Forall k t : Star"
 
-inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k TyVar x"
-inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k Arrow t\<^sub>1 t\<^sub>2"
-inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k Record ts"
-inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k Variant ts"
-inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k Inductive t"
-inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k Forall t"
+inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k TyVar x : k"
+inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k Arrow t\<^sub>1 t\<^sub>2 : k"
+inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k Record ts : k"
+inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k Variant ts : k"
+inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k Inductive k' t : k"
+inductive_cases [elim]: "\<Delta> \<turnstile>\<^sub>k Forall k' t : k"
 
-lemma [simp]: "\<Delta> \<turnstile>\<^sub>k t \<Longrightarrow> Suc \<Delta> \<turnstile>\<^sub>k incr\<^sub>t\<^sub>t x t"
-  by (induction \<Delta> t arbitrary: x rule: kinding.induct) simp_all
+lemma [simp]: "\<Delta> \<turnstile>\<^sub>k t : k \<Longrightarrow> x \<le> length \<Delta> \<Longrightarrow> insert_at x k' \<Delta> \<turnstile>\<^sub>k incr\<^sub>t\<^sub>t x t : k"
+  by (induction \<Delta> t k arbitrary: x rule: kinding.induct) simp_all
 
-lemma [simp]: "Suc \<Delta> \<turnstile>\<^sub>k t \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t' \<Longrightarrow> x \<le> \<Delta> \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k subst\<^sub>t\<^sub>t x t' t"
-  by (induction "Suc \<Delta>" t arbitrary: \<Delta> x t' rule: kinding.induct) simp_all
+lemma [simp]: "insert_at x k' \<Delta> \<turnstile>\<^sub>k t : k \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t' : k' \<Longrightarrow> x \<le> length \<Delta> \<Longrightarrow> 
+    \<Delta> \<turnstile>\<^sub>k subst\<^sub>t\<^sub>t x t' t : k"
+  proof (induction "insert_at x k' \<Delta>" t k arbitrary: \<Delta> x t' rule: kinding.induct) 
+  case (k_var y k)
+    thus ?case by (induction y) auto
+  qed simp_all
 
 end

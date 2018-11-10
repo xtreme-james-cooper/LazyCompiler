@@ -13,7 +13,7 @@ datatype expr =
 | Case expr type "expr list"
 | Fold type expr
 | Unfold type expr
-| TyAbs expr
+| TyAbs kind expr
 | TyApp expr type
 | TyLet type expr
 
@@ -28,7 +28,7 @@ primrec incr\<^sub>t\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr" wher
 | "incr\<^sub>t\<^sub>e x (Case e t cs) = Case (incr\<^sub>t\<^sub>e x e) (incr\<^sub>t\<^sub>t x t) (map (incr\<^sub>t\<^sub>e x) cs)"
 | "incr\<^sub>t\<^sub>e x (Fold t e) = Fold (incr\<^sub>t\<^sub>t (Suc x) t) (incr\<^sub>t\<^sub>e x e)"
 | "incr\<^sub>t\<^sub>e x (Unfold t e) = Unfold (incr\<^sub>t\<^sub>t (Suc x) t) (incr\<^sub>t\<^sub>e x e)"
-| "incr\<^sub>t\<^sub>e x (TyAbs e) = TyAbs (incr\<^sub>t\<^sub>e (Suc x) e)"
+| "incr\<^sub>t\<^sub>e x (TyAbs k e) = TyAbs k (incr\<^sub>t\<^sub>e (Suc x) e)"
 | "incr\<^sub>t\<^sub>e x (TyApp e t) = TyApp (incr\<^sub>t\<^sub>e x e) (incr\<^sub>t\<^sub>t x t)"
 | "incr\<^sub>t\<^sub>e x (TyLet t e) = TyLet (incr\<^sub>t\<^sub>t x t) (incr\<^sub>t\<^sub>e (Suc x) e)"
 
@@ -43,7 +43,7 @@ primrec subst\<^sub>t\<^sub>e :: "nat \<Rightarrow> type \<Rightarrow> expr \<Ri
 | "subst\<^sub>t\<^sub>e x t' (Case e t cs) = Case (subst\<^sub>t\<^sub>e x t' e) (subst\<^sub>t\<^sub>t x t' t) (map (subst\<^sub>t\<^sub>e x t') cs)"
 | "subst\<^sub>t\<^sub>e x t' (Fold t e) = Fold (subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t 0 t') t) (subst\<^sub>t\<^sub>e x t' e)"
 | "subst\<^sub>t\<^sub>e x t' (Unfold t e) = Unfold (subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t 0 t') t) (subst\<^sub>t\<^sub>e x t' e)"
-| "subst\<^sub>t\<^sub>e x t' (TyAbs e) = TyAbs (subst\<^sub>t\<^sub>e (Suc x) (incr\<^sub>t\<^sub>t 0 t') e)"
+| "subst\<^sub>t\<^sub>e x t' (TyAbs k e) = TyAbs k (subst\<^sub>t\<^sub>e (Suc x) (incr\<^sub>t\<^sub>t 0 t') e)"
 | "subst\<^sub>t\<^sub>e x t' (TyApp e t) = TyApp (subst\<^sub>t\<^sub>e x t' e) (subst\<^sub>t\<^sub>t x t' t)"
 | "subst\<^sub>t\<^sub>e x t' (TyLet t e) = TyLet (subst\<^sub>t\<^sub>t x t' t) (subst\<^sub>t\<^sub>e (Suc x) (incr\<^sub>t\<^sub>t 0 t') e)"
 
@@ -58,7 +58,7 @@ primrec incr\<^sub>e\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr" wher
 | "incr\<^sub>e\<^sub>e x (Case e t cs) = Case (incr\<^sub>e\<^sub>e x e) t (map (incr\<^sub>e\<^sub>e (Suc x)) cs)"
 | "incr\<^sub>e\<^sub>e x (Fold t e) = Fold t (incr\<^sub>e\<^sub>e x e)"
 | "incr\<^sub>e\<^sub>e x (Unfold t e) = Unfold t (incr\<^sub>e\<^sub>e x e)"
-| "incr\<^sub>e\<^sub>e x (TyAbs e) = TyAbs (incr\<^sub>e\<^sub>e x e)"
+| "incr\<^sub>e\<^sub>e x (TyAbs k e) = TyAbs k (incr\<^sub>e\<^sub>e x e)"
 | "incr\<^sub>e\<^sub>e x (TyApp e t) = TyApp (incr\<^sub>e\<^sub>e x e) t"
 | "incr\<^sub>e\<^sub>e x (TyLet t e) = TyLet t (incr\<^sub>e\<^sub>e x e)"
 
@@ -73,7 +73,7 @@ primrec subst\<^sub>e\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr \<Ri
 | "subst\<^sub>e\<^sub>e x e' (Case e t cs) = Case (subst\<^sub>e\<^sub>e x e' e) t (map (subst\<^sub>e\<^sub>e (Suc x) (incr\<^sub>e\<^sub>e 0 e')) cs)"
 | "subst\<^sub>e\<^sub>e x e' (Fold t e) = Fold t (subst\<^sub>e\<^sub>e x e' e)"
 | "subst\<^sub>e\<^sub>e x e' (Unfold t e) = Unfold t (subst\<^sub>e\<^sub>e x e' e)"
-| "subst\<^sub>e\<^sub>e x e' (TyAbs e) = TyAbs (subst\<^sub>e\<^sub>e x (incr\<^sub>t\<^sub>e 0 e') e)"
+| "subst\<^sub>e\<^sub>e x e' (TyAbs k e) = TyAbs k (subst\<^sub>e\<^sub>e x (incr\<^sub>t\<^sub>e 0 e') e)"
 | "subst\<^sub>e\<^sub>e x e' (TyApp e t) = TyApp (subst\<^sub>e\<^sub>e x e' e) t"
 | "subst\<^sub>e\<^sub>e x e' (TyLet t e) = TyLet t (subst\<^sub>e\<^sub>e x (incr\<^sub>t\<^sub>e 0 e') e)"
 
@@ -89,7 +89,7 @@ primrec is_value :: "expr \<Rightarrow> bool"
 | "is_value (Case e t cs) = False"
 | "is_value (Fold t e) = is_value e"
 | "is_value (Unfold t e) = False"
-| "is_value (TyAbs e) = True"
+| "is_value (TyAbs k e) = True"
 | "is_value (TyApp e t) = False"
 | "is_value (TyLet t e) = False"
 | "is_value_f [] = True"

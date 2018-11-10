@@ -2,29 +2,31 @@ theory Type
 imports Main
 begin
 
+datatype kind = Star
+
 datatype type = 
   TyVar nat
 | Arrow type type
 | Record "type list"
 | Variant "type list"
-| Inductive type
-| Forall type
+| Inductive kind type
+| Forall kind type
 
 primrec incr\<^sub>t\<^sub>t :: "nat \<Rightarrow> type \<Rightarrow> type" where
   "incr\<^sub>t\<^sub>t x (TyVar y) = TyVar (if x \<le> y then Suc y else y)"
 | "incr\<^sub>t\<^sub>t x (Arrow t\<^sub>1 t\<^sub>2) = Arrow (incr\<^sub>t\<^sub>t x t\<^sub>1) (incr\<^sub>t\<^sub>t x t\<^sub>2)"
 | "incr\<^sub>t\<^sub>t x (Record ts) = Record (map (incr\<^sub>t\<^sub>t x) ts)"
 | "incr\<^sub>t\<^sub>t x (Variant ts) = Variant (map (incr\<^sub>t\<^sub>t x) ts)"
-| "incr\<^sub>t\<^sub>t x (Inductive t) = Inductive (incr\<^sub>t\<^sub>t (Suc x) t)"
-| "incr\<^sub>t\<^sub>t x (Forall t) = Forall (incr\<^sub>t\<^sub>t (Suc x) t)"
+| "incr\<^sub>t\<^sub>t x (Inductive k t) = Inductive k (incr\<^sub>t\<^sub>t (Suc x) t)"
+| "incr\<^sub>t\<^sub>t x (Forall k t) = Forall k (incr\<^sub>t\<^sub>t (Suc x) t)"
 
 primrec subst\<^sub>t\<^sub>t :: "nat \<Rightarrow> type \<Rightarrow> type \<Rightarrow> type" where
   "subst\<^sub>t\<^sub>t x t' (TyVar y) = (if x = y then t' else TyVar (if x < y then y - 1 else y))"
 | "subst\<^sub>t\<^sub>t x t' (Arrow t\<^sub>1 t\<^sub>2) = Arrow (subst\<^sub>t\<^sub>t x t' t\<^sub>1) (subst\<^sub>t\<^sub>t x t' t\<^sub>2)"
 | "subst\<^sub>t\<^sub>t x t' (Record ts) = Record (map (subst\<^sub>t\<^sub>t x t') ts)"
 | "subst\<^sub>t\<^sub>t x t' (Variant ts) = Variant (map (subst\<^sub>t\<^sub>t x t') ts)"
-| "subst\<^sub>t\<^sub>t x t' (Inductive t) = Inductive (subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t 0 t') t)"
-| "subst\<^sub>t\<^sub>t x t' (Forall t) = Forall (subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t 0 t') t)"
+| "subst\<^sub>t\<^sub>t x t' (Inductive k t) = Inductive k (subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t 0 t') t)"
+| "subst\<^sub>t\<^sub>t x t' (Forall k t) = Forall k (subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t 0 t') t)"
 
 lemma [simp]: "y \<le> x \<Longrightarrow> incr\<^sub>t\<^sub>t y (incr\<^sub>t\<^sub>t x t) = incr\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t y t)"
   by (induction t arbitrary: x y) simp_all

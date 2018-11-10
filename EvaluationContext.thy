@@ -4,13 +4,13 @@ begin
 
 type_synonym frame = "expr \<Rightarrow> expr"
 
-inductive typecheck_frame :: "nat \<Rightarrow> type list \<Rightarrow> frame \<Rightarrow> type \<Rightarrow> type \<Rightarrow> bool" 
+inductive typecheck_frame :: "kind list \<Rightarrow> type list \<Rightarrow> frame \<Rightarrow> type \<Rightarrow> type \<Rightarrow> bool" 
     (infix ",_ \<turnstile> _ : _ \<rightarrow>" 60) where
   tc_frame [simp]: "(\<And>e. \<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> f e : t') \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> f : t \<rightarrow> t'"
 
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> f : t \<rightarrow> t'"
 
-inductive typecheck_context :: "nat \<Rightarrow> type list \<Rightarrow> frame list \<Rightarrow> type \<Rightarrow> type \<Rightarrow> bool" 
+inductive typecheck_context :: "kind list \<Rightarrow> type list \<Rightarrow> frame list \<Rightarrow> type \<Rightarrow> type \<Rightarrow> bool" 
     (infix ",_ \<turnstile>\<^sub>e\<^sub>c _ : _ \<rightarrow>" 60) where
   tcec_nil [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>e\<^sub>c [] : t \<rightarrow> t"
 | tcec_cons [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>e\<^sub>c s : t\<^sub>1 \<rightarrow> t\<^sub>2 \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> f : t\<^sub>2 \<rightarrow> t\<^sub>3 \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>e\<^sub>c f # s : t\<^sub>1 \<rightarrow> t\<^sub>3"
@@ -56,7 +56,7 @@ and unfold_f :: "expr list \<Rightarrow> expr list \<times> expr list \<times> f
     if is_value e 
     then ([], Unfold t e)
     else cons_fst (Unfold t) (unfold e))"
-| "unfold (TyAbs e) = ([], TyAbs e)"
+| "unfold (TyAbs k e) = ([], TyAbs k e)"
 | "unfold (TyApp e t) = (
     if is_value e 
     then ([], TyApp e t)

@@ -10,7 +10,7 @@ datatype expr =
 | Rec "expr list"
 | Proj expr nat
 | Inj nat "type list" expr
-| Case expr "expr list"
+| Case expr type "expr list"
 | Fold type expr
 | Unfold type expr
 | TyAbs expr
@@ -25,7 +25,7 @@ primrec incr\<^sub>t\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr" wher
 | "incr\<^sub>t\<^sub>e x (Rec fs) = Rec (map (incr\<^sub>t\<^sub>e x) fs)"
 | "incr\<^sub>t\<^sub>e x (Proj e l) = Proj (incr\<^sub>t\<^sub>e x e) l"
 | "incr\<^sub>t\<^sub>e x (Inj l ts e) = Inj l (map (incr\<^sub>t\<^sub>t x) ts) (incr\<^sub>t\<^sub>e x e)"
-| "incr\<^sub>t\<^sub>e x (Case e cs) = Case (incr\<^sub>t\<^sub>e x e) (map (incr\<^sub>t\<^sub>e x) cs)"
+| "incr\<^sub>t\<^sub>e x (Case e t cs) = Case (incr\<^sub>t\<^sub>e x e) (incr\<^sub>t\<^sub>t x t) (map (incr\<^sub>t\<^sub>e x) cs)"
 | "incr\<^sub>t\<^sub>e x (Fold t e) = Fold (incr\<^sub>t\<^sub>t (Suc x) t) (incr\<^sub>t\<^sub>e x e)"
 | "incr\<^sub>t\<^sub>e x (Unfold t e) = Unfold (incr\<^sub>t\<^sub>t (Suc x) t) (incr\<^sub>t\<^sub>e x e)"
 | "incr\<^sub>t\<^sub>e x (TyAbs e) = TyAbs (incr\<^sub>t\<^sub>e (Suc x) e)"
@@ -40,7 +40,7 @@ primrec subst\<^sub>t\<^sub>e :: "nat \<Rightarrow> type \<Rightarrow> expr \<Ri
 | "subst\<^sub>t\<^sub>e x t' (Rec fs) = Rec (map (subst\<^sub>t\<^sub>e x t') fs)"
 | "subst\<^sub>t\<^sub>e x t' (Proj e l) = Proj (subst\<^sub>t\<^sub>e x t' e) l"
 | "subst\<^sub>t\<^sub>e x t' (Inj l ts e) = Inj l (map (subst\<^sub>t\<^sub>t x t') ts) (subst\<^sub>t\<^sub>e x t' e)"
-| "subst\<^sub>t\<^sub>e x t' (Case e cs) = Case (subst\<^sub>t\<^sub>e x t' e) (map (subst\<^sub>t\<^sub>e x t') cs)"
+| "subst\<^sub>t\<^sub>e x t' (Case e t cs) = Case (subst\<^sub>t\<^sub>e x t' e) (subst\<^sub>t\<^sub>t x t' t) (map (subst\<^sub>t\<^sub>e x t') cs)"
 | "subst\<^sub>t\<^sub>e x t' (Fold t e) = Fold (subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t 0 t') t) (subst\<^sub>t\<^sub>e x t' e)"
 | "subst\<^sub>t\<^sub>e x t' (Unfold t e) = Unfold (subst\<^sub>t\<^sub>t (Suc x) (incr\<^sub>t\<^sub>t 0 t') t) (subst\<^sub>t\<^sub>e x t' e)"
 | "subst\<^sub>t\<^sub>e x t' (TyAbs e) = TyAbs (subst\<^sub>t\<^sub>e (Suc x) (incr\<^sub>t\<^sub>t 0 t') e)"
@@ -55,7 +55,7 @@ primrec incr\<^sub>e\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr" wher
 | "incr\<^sub>e\<^sub>e x (Rec fs) = Rec (map (incr\<^sub>e\<^sub>e x) fs)"
 | "incr\<^sub>e\<^sub>e x (Proj e l) = Proj (incr\<^sub>e\<^sub>e x e) l"
 | "incr\<^sub>e\<^sub>e x (Inj l ts e) = Inj l ts (incr\<^sub>e\<^sub>e x e)"
-| "incr\<^sub>e\<^sub>e x (Case e cs) = Case (incr\<^sub>e\<^sub>e x e) (map (incr\<^sub>e\<^sub>e (Suc x)) cs)"
+| "incr\<^sub>e\<^sub>e x (Case e t cs) = Case (incr\<^sub>e\<^sub>e x e) t (map (incr\<^sub>e\<^sub>e (Suc x)) cs)"
 | "incr\<^sub>e\<^sub>e x (Fold t e) = Fold t (incr\<^sub>e\<^sub>e x e)"
 | "incr\<^sub>e\<^sub>e x (Unfold t e) = Unfold t (incr\<^sub>e\<^sub>e x e)"
 | "incr\<^sub>e\<^sub>e x (TyAbs e) = TyAbs (incr\<^sub>e\<^sub>e x e)"
@@ -70,7 +70,7 @@ primrec subst\<^sub>e\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr \<Ri
 | "subst\<^sub>e\<^sub>e x e' (Rec fs) = Rec (map (subst\<^sub>e\<^sub>e x e') fs)"
 | "subst\<^sub>e\<^sub>e x e' (Proj e l) = Proj (subst\<^sub>e\<^sub>e x e' e) l"
 | "subst\<^sub>e\<^sub>e x e' (Inj l ts e) = Inj l ts (subst\<^sub>e\<^sub>e x e' e)"
-| "subst\<^sub>e\<^sub>e x e' (Case e cs) = Case (subst\<^sub>e\<^sub>e x e' e) (map (subst\<^sub>e\<^sub>e (Suc x) (incr\<^sub>e\<^sub>e 0 e')) cs)"
+| "subst\<^sub>e\<^sub>e x e' (Case e t cs) = Case (subst\<^sub>e\<^sub>e x e' e) t (map (subst\<^sub>e\<^sub>e (Suc x) (incr\<^sub>e\<^sub>e 0 e')) cs)"
 | "subst\<^sub>e\<^sub>e x e' (Fold t e) = Fold t (subst\<^sub>e\<^sub>e x e' e)"
 | "subst\<^sub>e\<^sub>e x e' (Unfold t e) = Unfold t (subst\<^sub>e\<^sub>e x e' e)"
 | "subst\<^sub>e\<^sub>e x e' (TyAbs e) = TyAbs (subst\<^sub>e\<^sub>e x (incr\<^sub>t\<^sub>e 0 e') e)"
@@ -86,7 +86,7 @@ primrec is_value :: "expr \<Rightarrow> bool"
 | "is_value (Rec fs) = is_value_f fs"
 | "is_value (Proj e l) = False"
 | "is_value (Inj l ts e) = is_value e"
-| "is_value (Case e cs) = False"
+| "is_value (Case e t cs) = False"
 | "is_value (Fold t e) = is_value e"
 | "is_value (Unfold t e) = False"
 | "is_value (TyAbs e) = True"
@@ -94,5 +94,13 @@ primrec is_value :: "expr \<Rightarrow> bool"
 | "is_value (TyLet t e) = False"
 | "is_value_f [] = True"
 | "is_value_f (e # fs) = (is_value e \<and> is_value_f fs)"
+
+lemma [simp]: "size (subst\<^sub>t\<^sub>e x t e) = size e"
+  proof (induction e arbitrary: x t)
+  case (Rec es)
+    thus ?case by (induction es) simp_all
+  next case (Case e t cs)
+    thus ?case by (induction cs) simp_all
+  qed simp_all
 
 end

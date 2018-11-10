@@ -14,7 +14,7 @@ inductive typecheck :: "nat \<Rightarrow> type list \<Rightarrow> expr \<Rightar
 | tc_proj [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Record ts \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Proj e l : t"
 | tc_inj [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<forall>tt \<in> set ts. \<Delta> \<turnstile>\<^sub>k tt \<Longrightarrow> 
     \<Delta>,\<Gamma> \<turnstile> Inj l ts e : Variant ts"
-| tc_case [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Variant ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Case e cs : t"
+| tc_case [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Variant ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Case e t cs : t"
 | tc_fold [simp]: "\<Delta>,\<Gamma> \<turnstile> e : subst\<^sub>t\<^sub>t 0 (Inductive t) t \<Longrightarrow> Suc \<Delta> \<turnstile>\<^sub>k t \<Longrightarrow> 
     \<Delta>,\<Gamma> \<turnstile> Fold t e : Inductive t"
 | tc_unfold [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Inductive t \<Longrightarrow> Suc \<Delta> \<turnstile>\<^sub>k t \<Longrightarrow> 
@@ -35,7 +35,7 @@ inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Let e\<^sub>1 e\<^sub>2 
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Rec fs : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Proj e l : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Inj e ts l : t"
-inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Case e cs : t"
+inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Case e tt cs : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Fold t' e : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Unfold t' e : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> TyAbs e : t"
@@ -75,7 +75,7 @@ lemma [simp]: "subst\<^sub>t\<^sub>e x t (incr\<^sub>t\<^sub>e x e) = e"
   proof (induction e arbitrary: x t)
   case (Rec es)
     thus ?case by (induction es) simp_all
-  next case (Case e cs)
+  next case (Case e t cs)
     thus ?case by (induction cs) simp_all
   qed simp_all
 

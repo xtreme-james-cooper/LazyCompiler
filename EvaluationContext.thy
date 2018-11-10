@@ -44,10 +44,10 @@ and unfold_f :: "expr list \<Rightarrow> expr list \<times> expr list \<times> f
     if is_value e 
     then ([], Inj l ts e) 
     else cons_fst (Inj l ts) (unfold e))"
-| "unfold (Case e cs) = (
+| "unfold (Case e t cs) = (
     if is_value e 
-    then ([], Case e cs)
-    else cons_fst (\<lambda>e. Case e cs) (unfold e))"
+    then ([], Case e t cs)
+    else cons_fst (\<lambda>e. Case e t cs) (unfold e))"
 | "unfold (Fold t e) = (
     if is_value e 
     then ([], Fold t e)

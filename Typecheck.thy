@@ -47,27 +47,6 @@ inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f e # fs : ts"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c [] : ts \<rightarrow> t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c e # cs : ts \<rightarrow> t"
 
-lemma canonical_arrow [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Arrow t\<^sub>1 t\<^sub>2 \<Longrightarrow> is_value e \<Longrightarrow> \<exists>e'. e = Abs t\<^sub>1 e'"
-  by (induction \<Gamma> e "Arrow t\<^sub>1 t\<^sub>2" rule: typecheck_typecheck_fs_typecheck_cs.inducts(1)) simp_all
-
-lemma canonical_record [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Record ts \<Longrightarrow> is_value e \<Longrightarrow> 
-    \<exists>fs. e = Rec fs \<and> list_all is_var fs"
-  by (induction \<Gamma> e "Record ts" rule: typecheck_typecheck_fs_typecheck_cs.inducts(1)) simp_all
-
-lemma canonical_variant [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Variant ts \<Longrightarrow> is_value e \<Longrightarrow> 
-    \<exists>l e'. e = Inj l ts e' \<and> is_var e'"
-  by (induction \<Gamma> e "Variant ts" rule: typecheck_typecheck_fs_typecheck_cs.inducts(1)) auto
-
-lemma canonical_inductive [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Inductive k t \<Longrightarrow> is_value e \<Longrightarrow> 
-    \<exists>e'. e = Fold t e' \<and> is_var e'"
-  by (induction \<Gamma> e "Inductive k t" rule: typecheck_typecheck_fs_typecheck_cs.inducts(1)) auto
-
-lemma canonical_forall [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Forall k t \<Longrightarrow> is_value e \<Longrightarrow> \<exists>e'. e = TyAbs k e'"
-  by (induction \<Gamma> e "Forall k t" rule: typecheck_typecheck_fs_typecheck_cs.inducts(1)) auto
-
-lemma [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<exists>e. lookup l fs = Some e"
-  by (induction l fs arbitrary: ts rule: lookup.induct) auto
-
 lemma typecheck_list_append [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f vs : vts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>f nvs : nvts \<Longrightarrow> 
     \<Delta>,\<Gamma> \<turnstile>\<^sub>f vs @ nvs : vts @ nvts"
   by (induction \<Gamma> vs vts rule: typecheck_typecheck_fs_typecheck_cs.inducts(2)) simp_all
@@ -233,12 +212,5 @@ lemma [simp]: "\<Delta>,insert_at x t' \<Gamma> \<turnstile> e : t \<Longrightar
   case (tc_var y t)
     thus ?case by (cases y) auto
   qed fastforce+
-
-lemma [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> lookup l fs = Some e \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e : t" 
-  by (induction l fs arbitrary: ts rule: lookup.induct) auto
-
-lemma [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> lookup l cs = Some e \<Longrightarrow> lookup l ts = Some t' \<Longrightarrow> 
-    \<Delta>,insert_at 0 t' \<Gamma> \<turnstile> e : t" 
-  by (induction l cs arbitrary: ts rule: lookup.induct) auto
 
 end

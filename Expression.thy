@@ -78,14 +78,14 @@ primrec subst\<^sub>e\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr \<Ri
 | "subst\<^sub>e\<^sub>e x e' (TyLet t e) = TyLet t (subst\<^sub>e\<^sub>e x (incr\<^sub>t\<^sub>e 0 e') e)"
 
 fun is_var :: "expr \<Rightarrow> bool" where
-  "is_var (Var y) = True"
+  "is_var (Var x) = True"
 | "is_var _ = False"
 
 primrec is_value :: "expr \<Rightarrow> bool" where
-  "is_value (Var y) = False"
+  "is_value (Var x) = False"
 | "is_value (Abs t e) = True"
 | "is_value (App e\<^sub>1 e\<^sub>2) = False"
-| "is_value (Let e\<^sub>1 e\<^sub>2) = False"
+| "is_value (Let e\<^sub>1 e\<^sub>2) = is_value e\<^sub>2"
 | "is_value (Rec fs) = list_all is_var fs"
 | "is_value (Proj e l) = False"
 | "is_value (Inj l ts e) = is_var e"
@@ -95,6 +95,24 @@ primrec is_value :: "expr \<Rightarrow> bool" where
 | "is_value (TyAbs k e) = True"
 | "is_value (TyApp e t) = False"
 | "is_value (TyLet t e) = False"
+
+primrec head_var :: "expr \<Rightarrow> nat option" where
+  "head_var (Var x) = Some x"
+| "head_var (Abs t e) = None"
+| "head_var (App e\<^sub>1 e\<^sub>2) = head_var e\<^sub>1"
+| "head_var (Let e\<^sub>1 e\<^sub>2) = (case head_var e\<^sub>2 of
+      Some (Suc n) \<Rightarrow> Some n
+    | Some 0 \<Rightarrow> head_var e\<^sub>1
+    | None \<Rightarrow> None)"
+| "head_var (Rec fs) = None"
+| "head_var (Proj e l) = head_var e"
+| "head_var (Inj l ts e) = None"
+| "head_var (Case e t cs) = head_var e"
+| "head_var (Fold t e) = None"
+| "head_var (Unfold t e) = head_var e"
+| "head_var (TyAbs k e) = None"
+| "head_var (TyApp e t) = head_var e"
+| "head_var (TyLet t e) = None"
 
 lemma [simp]: "size (subst\<^sub>t\<^sub>e x t e) = size e"
   proof (induction e arbitrary: x t)

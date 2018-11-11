@@ -13,7 +13,7 @@ fun lookup :: "nat \<Rightarrow> 'a list \<Rightarrow> 'a option" where
 | "lookup 0 (a # as) = Some a"
 | "lookup (Suc x) (a # as) = lookup x as"
 
-lemma [simp]: "x \<le> length as \<Longrightarrow> length (insert_at x a as) = Suc (length as)"
+lemma insert_length [simp]: "x \<le> length as \<Longrightarrow> length (insert_at x a as) = Suc (length as)"
   by (induction x a as rule: insert_at.induct) simp_all
 
 lemma [simp]: "x \<le> length as \<Longrightarrow> y \<le> x \<Longrightarrow> 
@@ -44,7 +44,7 @@ lemma [simp]: "x \<le> length as \<Longrightarrow> map f (insert_at x a as) = in
 lemma [simp]: "lookup x (map f as) = map_option f (lookup x as)"
   by (induction x as rule: lookup.induct) simp_all
 
-lemma [elim]: "lookup x as = Some a \<Longrightarrow> x < length as"
+lemma lookup_less_than [elim]: "lookup x as = Some a \<Longrightarrow> x < length as"
   by (induction x as rule: lookup.induct) simp_all
 
 lemma [elim]: "list_all p as \<Longrightarrow> lookup x as = Some a \<Longrightarrow> p a"

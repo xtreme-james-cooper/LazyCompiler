@@ -18,73 +18,75 @@ inductive typecheck_context :: "kind list \<Rightarrow> type list \<Rightarrow> 
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>e\<^sub>c [] : t \<rightarrow> t'"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>e\<^sub>c f # s : t \<rightarrow> t'"
 
-fun unfold :: "expr \<Rightarrow> frame list \<times> expr" 
-and unfold_f :: "expr list \<Rightarrow> expr list \<times> expr list \<times> frame list \<times> expr" where
-  "unfold (Var y) = ([], Var y)"
-| "unfold (Abs t e) = ([], Abs t e)"
-| "unfold (App e\<^sub>1 e\<^sub>2) = (
+fun unstack_eager :: "expr \<Rightarrow> frame list \<times> expr" 
+and unstack_eager_f :: "expr list \<Rightarrow> expr list \<times> expr list \<times> frame list \<times> expr" where
+  "unstack_eager (Var y) = ([], Var y)"
+| "unstack_eager (Abs t e) = ([], Abs t e)"
+| "unstack_eager (App e\<^sub>1 e\<^sub>2) = (
     if is_value e\<^sub>1
     then if is_value e\<^sub>2
          then ([], App e\<^sub>1 e\<^sub>2)
-         else cons_fst (App e\<^sub>1) (unfold e\<^sub>2)
-    else cons_fst (\<lambda>e. App e e\<^sub>2) (unfold e\<^sub>1))"
-| "unfold (Let e\<^sub>1 e\<^sub>2) = (
+         else cons_fst (App e\<^sub>1) (unstack_eager e\<^sub>2)
+    else cons_fst (\<lambda>e. App e e\<^sub>2) (unstack_eager e\<^sub>1))"
+| "unstack_eager (Let e\<^sub>1 e\<^sub>2) = (
     if is_value e\<^sub>1
     then ([], Let e\<^sub>1 e\<^sub>2) 
-    else cons_fst (\<lambda>e. Let e e\<^sub>2) (unfold e\<^sub>1))"
-| "unfold (Rec fs) = (
+    else cons_fst (\<lambda>e. Let e e\<^sub>2) (unstack_eager e\<^sub>1))"
+| "unstack_eager (Rec fs) = (
     if is_value_f fs 
     then ([], Rec fs) 
-    else case unfold_f fs of (vs, nvs, se) \<Rightarrow> cons_fst (\<lambda>e. Rec (vs @ [e] @ nvs)) se)"
-| "unfold (Proj e l) = (
+    else case unstack_eager_f fs of (vs, nvs, se) \<Rightarrow> cons_fst (\<lambda>e. Rec (vs @ [e] @ nvs)) se)"
+| "unstack_eager (Proj e l) = (
     if is_value e 
     then ([], Proj e l) 
-    else cons_fst (\<lambda>e. Proj e l) (unfold e))"
-| "unfold (Inj l ts e) = (
+    else cons_fst (\<lambda>e. Proj e l) (unstack_eager e))"
+| "unstack_eager (Inj l ts e) = (
     if is_value e 
     then ([], Inj l ts e) 
-    else cons_fst (Inj l ts) (unfold e))"
-| "unfold (Case e t cs) = (
+    else cons_fst (Inj l ts) (unstack_eager e))"
+| "unstack_eager (Case e t cs) = (
     if is_value e 
     then ([], Case e t cs)
-    else cons_fst (\<lambda>e. Case e t cs) (unfold e))"
-| "unfold (Fold t e) = (
+    else cons_fst (\<lambda>e. Case e t cs) (unstack_eager e))"
+| "unstack_eager (Fold t e) = (
     if is_value e 
     then ([], Fold t e)
-    else cons_fst (Fold t) (unfold e))"
-| "unfold (Unfold t e) = (
+    else cons_fst (Fold t) (unstack_eager e))"
+| "unstack_eager (Unfold t e) = (
     if is_value e 
     then ([], Unfold t e)
-    else cons_fst (Unfold t) (unfold e))"
-| "unfold (TyAbs k e) = ([], TyAbs k e)"
-| "unfold (TyApp e t) = (
+    else cons_fst (Unfold t) (unstack_eager e))"
+| "unstack_eager (TyAbs k e) = ([], TyAbs k e)"
+| "unstack_eager (TyApp e t) = (
     if is_value e 
     then ([], TyApp e t)
-    else cons_fst (\<lambda>e. TyApp e t) (unfold e))"
-| "unfold (TyLet t e) = ([], TyLet t e)"
-| "unfold_f [] = undefined"
-| "unfold_f (e # fs) = (
+    else cons_fst (\<lambda>e. TyApp e t) (unstack_eager e))"
+| "unstack_eager (TyLet t e) = ([], TyLet t e)"
+| "unstack_eager_f [] = undefined"
+| "unstack_eager_f (e # fs) = (
     if is_value e
-    then cons_fst e (unfold_f fs)
-    else ([], fs, unfold e))"
+    then cons_fst e (unstack_eager_f fs)
+    else ([], fs, unstack_eager e))"
 
-fun fold :: "frame list \<Rightarrow> expr \<Rightarrow> expr" where
-  "fold [] e = e"
-| "fold (f # s) e = f (fold s e)"
+fun restack :: "frame list \<Rightarrow> expr \<Rightarrow> expr" where
+  "restack [] e = e"
+| "restack (f # s) e = f (restack s e)"
 
-lemma [simp]: "unfold e = (s, e') \<Longrightarrow> fold s e' = e"
-  and [simp]: "unfold_f fs = (vs, nvs, s, e') \<Longrightarrow> \<not> is_value_f fs \<Longrightarrow> vs @ [fold s e'] @ nvs = fs"
-  by (induction e and fs arbitrary: s e' and vs nvs s e' rule: unfold_unfold_f.induct) 
+lemma [simp]: "unstack_eager e = (s, e') \<Longrightarrow> restack s e' = e"
+  and [simp]: "unstack_eager_f fs = (vs, nvs, s, e') \<Longrightarrow> 
+    \<not> is_value_f fs \<Longrightarrow> vs @ [restack s e'] @ nvs = fs"
+  by (induction e and fs arbitrary: s e' and vs nvs s e' rule: unstack_eager_unstack_eager_f.induct) 
      (auto split: if_splits prod.splits)
 
 lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> f : t\<^sub>1 \<rightarrow> t\<^sub>2 \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e : t\<^sub>1 \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> f e : t\<^sub>2"
   by (induction \<Gamma> f t\<^sub>1 t\<^sub>2 rule: typecheck_frame.induct) simp_all
 
-lemma [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>e\<^sub>c s : t' \<rightarrow> t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e : t' \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> fold s e : t"
+lemma [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>e\<^sub>c s : t' \<rightarrow> t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e : t' \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> restack s e : t"
   by (induction \<Gamma> s t' t rule: typecheck_context.induct) auto
 
-lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> unfold e = (s, e') \<Longrightarrow> \<exists>t'. (\<Delta>,\<Gamma> \<turnstile>\<^sub>e\<^sub>c s : t' \<rightarrow> t) \<and> (\<Delta>,\<Gamma> \<turnstile> e' : t')"
-  and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> \<not> is_value_f fs \<Longrightarrow> unfold_f fs = (vs, nvs, s, e') \<Longrightarrow> 
+lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> unstack_eager e = (s, e') \<Longrightarrow> 
+    \<exists>t'. (\<Delta>,\<Gamma> \<turnstile>\<^sub>e\<^sub>c s : t' \<rightarrow> t) \<and> (\<Delta>,\<Gamma> \<turnstile> e' : t')"
+  and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> \<not> is_value_f fs \<Longrightarrow> unstack_eager_f fs = (vs, nvs, s, e') \<Longrightarrow> 
     \<exists>t t' vts nvts. ts = vts @ [t] @ nvts \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>e\<^sub>c s : t' \<rightarrow> t) \<and> (\<Delta>,\<Gamma> \<turnstile> e' : t') \<and> 
       (\<Delta>,\<Gamma> \<turnstile>\<^sub>f vs : vts) \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>f nvs : nvts)"
   and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> True"

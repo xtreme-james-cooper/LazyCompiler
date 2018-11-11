@@ -1,4 +1,4 @@
-theory Evaluate
+theory EvaluateEager
 imports EvaluationContext
 begin
 
@@ -12,12 +12,12 @@ inductive reduce :: "expr \<Rightarrow> expr \<Rightarrow> bool" (infix "\<leads
 | ev_tlet [simp]: "TyLet t e \<leadsto>\<^sub>\<beta> subst\<^sub>t\<^sub>e 0 t e" 
 
 inductive evaluate :: "expr \<Rightarrow> expr \<Rightarrow> bool" (infix "\<leadsto>" 60) where
-  ev_stack [simp]: "unfold e = (s, r) \<Longrightarrow> r \<leadsto>\<^sub>\<beta> r' \<Longrightarrow> e \<leadsto> fold s r'"
+  ev_stack [simp]: "unstack_eager e = (s, r) \<Longrightarrow> r \<leadsto>\<^sub>\<beta> r' \<Longrightarrow> e \<leadsto> restack s r'"
 
 inductive_cases [elim]: "e \<leadsto> e'"
 
-theorem [simp]: "\<Delta>,[] \<turnstile> e : t \<Longrightarrow> unfold e = (s, r) \<Longrightarrow> is_value e \<or> (\<exists>r'. r \<leadsto>\<^sub>\<beta> r')"
-    and "\<Delta>,[] \<turnstile>\<^sub>f fs : ts \<Longrightarrow> \<not> is_value_f fs \<Longrightarrow> unfold_f fs = (vs, nvs, s, r) \<Longrightarrow> \<exists>r'. r \<leadsto>\<^sub>\<beta> r'"
+theorem [simp]: "\<Delta>,[] \<turnstile> e : t \<Longrightarrow> unstack_eager e = (s, r) \<Longrightarrow> is_value e \<or> (\<exists>r'. r \<leadsto>\<^sub>\<beta> r')"
+    and "\<Delta>,[] \<turnstile>\<^sub>f fs : ts \<Longrightarrow> \<not> is_value_f fs \<Longrightarrow> unstack_eager_f fs = (vs, nvs, s, r) \<Longrightarrow> \<exists>r'. r \<leadsto>\<^sub>\<beta> r'"
     and "\<Delta>,[] \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> l < length ts \<Longrightarrow> \<exists>c. lookup l cs = Some c"
   proof (induction \<Delta> "[] :: type list" e t and \<Delta> "[] :: type list" fs ts 
                and \<Delta> "[] :: type list" cs ts t
@@ -85,7 +85,7 @@ theorem [simp]: "\<Delta>,[] \<turnstile> e : t \<Longrightarrow> unfold e = (s,
 theorem progress: "\<Delta>,[] \<turnstile> e : t \<Longrightarrow> is_value e \<or> (\<exists>e'. e \<leadsto> e')"
   proof -
     assume "\<Delta>,[] \<turnstile> e : t"
-    moreover obtain s r where S: "unfold e = (s, r)" by fastforce
+    moreover obtain s r where S: "unstack_eager e = (s, r)" by fastforce
     ultimately have R: "is_value e \<or> (\<exists>r'. r \<leadsto>\<^sub>\<beta> r')" by simp
     thus "is_value e \<or> (\<exists>e'. e \<leadsto> e')" 
       proof (cases "is_value e")

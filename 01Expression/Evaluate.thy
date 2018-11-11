@@ -16,7 +16,7 @@ inductive evaluate :: "expr \<Rightarrow> expr \<Rightarrow> bool" (infix "\<lea
 | ev_proj_let [simp]: "is_value e\<^sub>2 \<Longrightarrow> Proj (Let e\<^sub>1 e\<^sub>2) l \<leadsto> Let e\<^sub>1 (Proj e\<^sub>2 l)" 
 | ev_inj [simp]: "\<not> is_var e \<Longrightarrow> Inj l ts e \<leadsto> Let e (Inj l ts (Var 0))"
 | ev_case1 [simp]: "e \<leadsto> e' \<Longrightarrow> Case e t cs \<leadsto> Case e' t cs"
-| ev_case2 [simp]: "is_var e \<Longrightarrow> lookup l cs = Some e' \<Longrightarrow> Case (Inj l ts e) t cs \<leadsto> subst\<^sub>e\<^sub>e 0 e e'"
+| ev_case2 [simp]: "is_var e \<Longrightarrow> lookup l cs = Some e' \<Longrightarrow> Case (Inj l ts e) t cs \<leadsto> Let e e'"
 | ev_case_let [simp]: "is_value e\<^sub>2 \<Longrightarrow> 
     Case (Let e\<^sub>1 e\<^sub>2) t cs \<leadsto> Let e\<^sub>1 (Case e\<^sub>2 t (map (incr\<^sub>e\<^sub>e (Suc 0)) cs))" 
 | ev_fold [simp]: "\<not> is_var e \<Longrightarrow> Fold t e \<leadsto> Let e (Fold t (Var 0))" 
@@ -143,7 +143,7 @@ theorem preservation: "e \<leadsto> e' \<Longrightarrow> \<Delta>,\<Gamma> \<tur
     then obtain tt where "(\<Delta>,\<Gamma> \<turnstile> e : tt) \<and> lookup l ts = Some tt \<and> 
       (\<forall>tt \<in> set ts. \<Delta> \<turnstile>\<^sub>k tt : Star) \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t') \<and> t' = t" by fastforce
     moreover with ev_case2 have "\<Delta>,insert_at 0 tt \<Gamma> \<turnstile> e' : t" by fastforce
-    ultimately show ?case by simp
+    ultimately show ?case by fastforce
   next case (ev_tyapp2 k e t')
     then obtain tt where T: "(insert_at 0 k \<Delta>,map (incr\<^sub>t\<^sub>t 0) \<Gamma> \<turnstile> e : tt) \<and> (\<Delta> \<turnstile>\<^sub>k t' : k) \<and> 
       t = subst\<^sub>t\<^sub>t 0 t' tt" by fastforce

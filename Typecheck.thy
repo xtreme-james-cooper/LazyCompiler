@@ -51,15 +51,15 @@ lemma canonical_arrow [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Arrow t\<^sub>
   by (induction \<Gamma> e "Arrow t\<^sub>1 t\<^sub>2" rule: typecheck_typecheck_fs_typecheck_cs.inducts(1)) simp_all
 
 lemma canonical_record [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Record ts \<Longrightarrow> is_value e \<Longrightarrow> 
-    \<exists>fs. e = Rec fs \<and> is_value_f fs \<and> \<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts"
+    \<exists>fs. e = Rec fs \<and> list_all is_var fs"
   by (induction \<Gamma> e "Record ts" rule: typecheck_typecheck_fs_typecheck_cs.inducts(1)) simp_all
 
 lemma canonical_variant [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Variant ts \<Longrightarrow> is_value e \<Longrightarrow> 
-    \<exists>l e'. e = Inj l ts e' \<and> is_value e' \<and> l < length ts"
+    \<exists>l e'. e = Inj l ts e' \<and> is_var e'"
   by (induction \<Gamma> e "Variant ts" rule: typecheck_typecheck_fs_typecheck_cs.inducts(1)) auto
 
 lemma canonical_inductive [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Inductive k t \<Longrightarrow> is_value e \<Longrightarrow> 
-    \<exists>e'. e = Fold t e' \<and> is_value e'"
+    \<exists>e'. e = Fold t e' \<and> is_var e'"
   by (induction \<Gamma> e "Inductive k t" rule: typecheck_typecheck_fs_typecheck_cs.inducts(1)) auto
 
 lemma canonical_forall [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Forall k t \<Longrightarrow> is_value e \<Longrightarrow> \<exists>e'. e = TyAbs k e'"
@@ -71,6 +71,18 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> 
 lemma typecheck_list_append [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f vs : vts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>f nvs : nvts \<Longrightarrow> 
     \<Delta>,\<Gamma> \<turnstile>\<^sub>f vs @ nvs : vts @ nvts"
   by (induction \<Gamma> vs vts rule: typecheck_typecheck_fs_typecheck_cs.inducts(2)) simp_all
+
+lemma typecheck_list_append_inv [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f vs @ nvs : ts \<Longrightarrow> 
+    \<exists>vts nvts. ts = vts @ nvts \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>f vs : vts) \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>f nvs : nvts)"
+  proof (induction vs arbitrary: ts)
+  case (Cons v vs)
+    then obtain t ts' where "ts = t # ts' \<and> (\<Delta>,\<Gamma> \<turnstile> v : t) \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>f vs @ nvs : ts')" by fastforce
+    moreover with Cons obtain vts nvts where "ts' = vts @ nvts \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>f vs : vts) \<and> 
+      (\<Delta>,\<Gamma> \<turnstile>\<^sub>f nvs : nvts)" by fastforce
+    ultimately have "ts = (t # vts) @ nvts \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>f v # vs : t # vts) \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>f nvs : nvts)" 
+      by simp
+    thus ?case by blast
+  qed fastforce+
 
 lemma [simp]: "subst\<^sub>t\<^sub>e x t (incr\<^sub>t\<^sub>e x e) = e"
   proof (induction e arbitrary: x t)

@@ -85,7 +85,7 @@ primrec is_value :: "expr \<Rightarrow> bool" where
   "is_value (Var y) = False"
 | "is_value (Abs t e) = True"
 | "is_value (App e\<^sub>1 e\<^sub>2) = False"
-| "is_value (Let e\<^sub>1 e\<^sub>2) = is_value e\<^sub>2"
+| "is_value (Let e\<^sub>1 e\<^sub>2) = False"
 | "is_value (Rec fs) = list_all is_var fs"
 | "is_value (Proj e l) = False"
 | "is_value (Inj l ts e) = is_var e"

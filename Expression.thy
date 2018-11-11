@@ -77,23 +77,24 @@ primrec subst\<^sub>e\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr \<Ri
 | "subst\<^sub>e\<^sub>e x e' (TyApp e t) = TyApp (subst\<^sub>e\<^sub>e x e' e) t"
 | "subst\<^sub>e\<^sub>e x e' (TyLet t e) = TyLet t (subst\<^sub>e\<^sub>e x (incr\<^sub>t\<^sub>e 0 e') e)"
 
-primrec is_value :: "expr \<Rightarrow> bool" 
-    and is_value_f :: "expr list \<Rightarrow> bool" where
+fun is_var :: "expr \<Rightarrow> bool" where
+  "is_var (Var y) = True"
+| "is_var _ = False"
+
+primrec is_value :: "expr \<Rightarrow> bool" where
   "is_value (Var y) = False"
 | "is_value (Abs t e) = True"
 | "is_value (App e\<^sub>1 e\<^sub>2) = False"
-| "is_value (Let e\<^sub>1 e\<^sub>2) = False"
-| "is_value (Rec fs) = is_value_f fs"
+| "is_value (Let e\<^sub>1 e\<^sub>2) = is_value e\<^sub>2"
+| "is_value (Rec fs) = list_all is_var fs"
 | "is_value (Proj e l) = False"
-| "is_value (Inj l ts e) = is_value e"
+| "is_value (Inj l ts e) = is_var e"
 | "is_value (Case e t cs) = False"
-| "is_value (Fold t e) = is_value e"
+| "is_value (Fold t e) = is_var e"
 | "is_value (Unfold t e) = False"
 | "is_value (TyAbs k e) = True"
 | "is_value (TyApp e t) = False"
 | "is_value (TyLet t e) = False"
-| "is_value_f [] = True"
-| "is_value_f (e # fs) = (is_value e \<and> is_value_f fs)"
 
 lemma [simp]: "size (subst\<^sub>t\<^sub>e x t e) = size e"
   proof (induction e arbitrary: x t)

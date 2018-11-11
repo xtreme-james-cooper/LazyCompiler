@@ -47,4 +47,7 @@ lemma [simp]: "lookup x (map f as) = map_option f (lookup x as)"
 lemma [elim]: "lookup x as = Some a \<Longrightarrow> x < length as"
   by (induction x as rule: lookup.induct) simp_all
 
+lemma [elim]: "list_all p as \<Longrightarrow> lookup x as = Some a \<Longrightarrow> p a"
+  by (induction x as rule: lookup.induct) simp_all
+
 end

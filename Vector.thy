@@ -8,6 +8,11 @@ fun insert_at :: "nat \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a li
 | "insert_at (Suc x) a' [] = undefined"
 | "insert_at (Suc x) a' (a # as) = a # insert_at x a' as"
 
+fun update_at :: "nat \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+  "update_at x a' [] = undefined"
+| "update_at 0 a' (a # as) = a' # as"
+| "update_at (Suc x) a' (a # as) = a # update_at x a' as"
+
 fun lookup :: "nat \<Rightarrow> 'a list \<Rightarrow> 'a option" where
   "lookup x [] = None"
 | "lookup 0 (a # as) = Some a"

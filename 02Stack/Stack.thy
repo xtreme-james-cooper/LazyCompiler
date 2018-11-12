@@ -1,9 +1,10 @@
 theory Stack
-imports "../01Expression/Expression"
+imports "../Vector" "../01Expression/Expression"
 begin
 
 datatype frame = 
-  SApp expr
+  SRef nat
+| SApp expr
 | SBind
 | SProj nat
 | SCase type "expr list"
@@ -16,6 +17,7 @@ datatype stack_state = StackState stack_direction expr "frame list" "expr list"
 
 fun unstack :: "expr \<Rightarrow> frame list \<Rightarrow> expr list \<Rightarrow> expr" where
   "unstack e [] h = e"
+| "unstack e (SRef x # s) h = unstack (Var x) s (update_at x e h)"
 | "unstack e (SApp e' # s) h = unstack (App e e') s h"
 | "unstack e (SBind # s) [] = undefined"
 | "unstack e (SBind # s) (e' # h) = unstack (Let e' e) s h"

@@ -203,14 +203,44 @@ lemma [simp]: "\<Delta>,insert_at x t' \<Gamma> \<turnstile> e : t \<Longrightar
     \<Delta>,\<Gamma> \<turnstile> subst\<^sub>e\<^sub>e x e' e : t"
   and [simp]: "\<Delta>,insert_at x t' \<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e' : t' \<Longrightarrow> 
     \<Delta>,\<Gamma> \<turnstile>\<^sub>f map (subst\<^sub>e\<^sub>e x e') fs : ts"
-  and [simp]: "\<Delta>,insert_at x t' \<Gamma> \<turnstile>\<^sub>c fs : ts \<rightarrow> t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e' : t' \<Longrightarrow> 
-    \<Delta>,\<Gamma> \<turnstile>\<^sub>c map (subst\<^sub>e\<^sub>e (Suc x) (incr\<^sub>e\<^sub>e 0 e')) fs : ts \<rightarrow> t "
+  and [simp]: "\<Delta>,insert_at x t' \<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e' : t' \<Longrightarrow> 
+    \<Delta>,\<Gamma> \<turnstile>\<^sub>c map (subst\<^sub>e\<^sub>e (Suc x) (incr\<^sub>e\<^sub>e 0 e')) cs : ts \<rightarrow> t "
   proof (induction \<Delta> "insert_at x t' \<Gamma>" e t and \<Delta> "insert_at x t' \<Gamma>" fs ts 
-               and \<Delta> "insert_at x t' \<Gamma>" fs ts t 
+               and \<Delta> "insert_at x t' \<Gamma>" cs ts t 
          arbitrary: \<Gamma> x e' t' and \<Gamma> x e' t' and \<Gamma> x e' t'
          rule: typecheck_typecheck_fs_typecheck_cs.inducts)
   case (tc_var y t)
     thus ?case by (cases y) auto
+  qed fastforce+
+
+lemma tc_weaken [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> \<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e : t"
+  and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> \<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile>\<^sub>f fs : ts"
+  and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> \<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t "
+  proof (induction \<Delta> \<Gamma> e t and \<Delta> \<Gamma> fs ts and \<Delta> \<Gamma> cs ts t arbitrary: t' and t' and t' 
+         rule: typecheck_typecheck_fs_typecheck_cs.inducts)
+  case (tc_app \<Delta> \<Gamma> e\<^sub>1 t\<^sub>1 t\<^sub>2 e\<^sub>2)
+    hence "\<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e\<^sub>1 : Arrow t\<^sub>1 t\<^sub>2" by simp
+    moreover from tc_app have "\<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e\<^sub>2 : t\<^sub>1" by simp
+    ultimately show ?case by simp
+  next case (tc_let \<Delta> \<Gamma> e\<^sub>1 t\<^sub>1 e\<^sub>2 t\<^sub>2)
+    hence "\<Delta>,insert_at (length (insert_at 0 t\<^sub>1 \<Gamma>)) t' (insert_at 0 t\<^sub>1 \<Gamma>) \<turnstile> e\<^sub>2 : t\<^sub>2" by simp
+    moreover from tc_let have "\<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e\<^sub>1 : t\<^sub>1" by simp
+    ultimately show ?case by simp
+  next case (tc_proj \<Delta> \<Gamma> e ts l t)
+    moreover hence "\<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e : Record ts" by simp
+    ultimately show ?case by fastforce
+  next case (tc_inj \<Delta> \<Gamma> e t l ts)
+    hence "lookup l ts = Some t" by simp
+    moreover from tc_inj have "\<forall>tt\<in>set ts. \<Delta> \<turnstile>\<^sub>k tt : Star" by simp
+    moreover from tc_inj have "\<Delta> ,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e : t" by simp
+    ultimately show ?case by simp
+  next case (tc_case \<Delta> \<Gamma> e ts cs t)
+    hence "\<Delta> ,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e : Variant ts" by simp
+    moreover from tc_case have "\<Delta> ,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t" by simp
+    ultimately show ?case by simp
+  next case (tc_tyapp \<Delta> \<Gamma> e k t tt)
+    moreover hence "\<Delta> ,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e : Forall k t" by simp
+    ultimately show ?case by fastforce
   qed fastforce+
 
 end

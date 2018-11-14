@@ -122,4 +122,19 @@ lemma [simp]: "size (subst\<^sub>t\<^sub>e x t e) = size e"
     thus ?case by (induction cs) simp_all
   qed simp_all
 
+lemma split_fields [simp]: "\<not> list_all is_var fs \<Longrightarrow> 
+    \<exists>vs e nvs. fs = vs @ [e] @ nvs \<and> list_all is_var vs \<and> \<not> is_var e"
+  proof (induction fs)
+  case (Cons f fs)
+    thus ?case
+      proof (cases "is_var f")
+      case True
+        with Cons obtain vs e nvs where "fs = vs @ [e] @ nvs \<and> list_all is_var vs \<and> \<not> is_var e" 
+          by fastforce
+        with True have "f # fs = (f # vs) @ [e] @ nvs \<and> list_all is_var (f # vs) \<and> \<not> is_var e" 
+          by simp
+        thus ?thesis by blast
+      qed fastforce+
+  qed simp_all
+
 end

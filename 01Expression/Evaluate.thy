@@ -51,21 +51,6 @@ lemma canonical_forall [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Forall k t \<
 lemma lookup_in_tc [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<exists>e. lookup l fs = Some e"
   by (induction l fs arbitrary: ts rule: lookup.induct) auto
 
-lemma split_fields [simp]: "\<not> list_all is_var fs \<Longrightarrow> 
-    \<exists>vs e nvs. fs = vs @ [e] @ nvs \<and> list_all is_var vs \<and> \<not> is_var e"
-  proof (induction fs)
-  case (Cons f fs)
-    thus ?case
-      proof (cases "is_var f")
-      case True
-        with Cons obtain vs e nvs where "fs = vs @ [e] @ nvs \<and> list_all is_var vs \<and> \<not> is_var e" 
-          by fastforce
-        with True have "f # fs = (f # vs) @ [e] @ nvs \<and> list_all is_var (f # vs) \<and> \<not> is_var e" 
-          by simp
-        thus ?thesis by blast
-      qed fastforce+
-  qed simp_all
-
 lemma progress': "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> 
   is_value e \<or> (\<exists>e'. e \<leadsto> e') \<or> (\<exists>x < length \<Gamma>. head_var e = Some x)"
     and "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> True"

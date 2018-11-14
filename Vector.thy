@@ -8,11 +8,6 @@ fun insert_at :: "nat \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a li
 | "insert_at (Suc x) a' [] = undefined"
 | "insert_at (Suc x) a' (a # as) = a # insert_at x a' as"
 
-fun update_at :: "nat \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
-  "update_at x a' [] = undefined"
-| "update_at 0 a' (a # as) = a' # as"
-| "update_at (Suc x) a' (a # as) = a # update_at x a' as"
-
 fun lookup :: "nat \<Rightarrow> 'a list \<Rightarrow> 'a option" where
   "lookup x [] = None"
 | "lookup 0 (a # as) = Some a"
@@ -30,6 +25,13 @@ lemma [simp]: "x \<le> length as \<Longrightarrow> y \<le> x \<Longrightarrow>
 
 lemma [simp]: "x \<le> length as \<Longrightarrow> lookup x (insert_at x a as) = Some a"
   by (induction x a as rule: insert_at.induct) simp_all
+
+lemma [simp]: "lookup x as = Some a \<Longrightarrow> lookup x (insert_at (length as) a' as) = Some a"
+  by (induction x as rule: lookup.induct) simp_all
+
+lemma [elim]: "lookup x (insert_at (length as) a' as) = Some a \<Longrightarrow> x < length as \<Longrightarrow> 
+    lookup x as = Some a"
+  by (induction x as rule: lookup.induct) fastforce+
 
 lemma [simp]: "x \<le> length as \<Longrightarrow> y < x \<Longrightarrow> lookup y (insert_at x a as) = lookup y as"
   proof (induction x a as arbitrary: y rule: insert_at.induct)

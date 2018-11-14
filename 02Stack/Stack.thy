@@ -25,14 +25,10 @@ datatype stack_state = StackState focus "frame list" "expr heap"
 
 primrec devalue :: "val \<Rightarrow> expr" where
   "devalue (VAbs t e) = Abs t e"
-| "devalue (VRec xs) = Rec (map Var xs)"
-| "devalue (VInj l ts x) = Inj l ts (Var x)"
-| "devalue (VFold t x) = Fold t (Var x)"
+| "devalue (VRec xs) = Rec xs"
+| "devalue (VInj l ts x) = Inj l ts x"
+| "devalue (VFold t x) = Fold t x"
 | "devalue (VTyAbs k e) = TyAbs k e"
-
-fun devar :: "expr \<Rightarrow> nat" where
-  "devar (Var x) = x"
-| "devar _ = undefined"
 
 fun unstack :: "expr \<Rightarrow> frame list \<Rightarrow> expr heap \<Rightarrow> expr" where
   "unstack e [] h = e"

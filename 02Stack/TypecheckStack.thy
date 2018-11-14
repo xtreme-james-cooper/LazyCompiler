@@ -2,26 +2,20 @@ theory TypecheckStack
 imports Stack "../01Expression/Typecheck"
 begin
 
-inductive typecheck_value :: "kind list \<Rightarrow> type list \<Rightarrow> val \<Rightarrow> type \<Rightarrow> bool" (infix ",_ \<turnstile>\<^sub>v _ :" 60) 
-      and typecheck_vars :: "kind list \<Rightarrow> type list \<Rightarrow> nat list \<Rightarrow> type list \<Rightarrow> bool" 
-        (infix ",_ \<turnstile>\<^sub>v\<^sub>s _ :" 60) where
+inductive typecheck_value :: "kind list \<Rightarrow> type list \<Rightarrow> val \<Rightarrow> type \<Rightarrow> bool" (infix ",_ \<turnstile>\<^sub>v _ :" 60) where
   tc_vabs [simp]: "\<Delta>,insert_at 0 t\<^sub>1 \<Gamma> \<turnstile> e : t\<^sub>2 \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t\<^sub>1 : Star \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>v VAbs t\<^sub>1 e : Arrow t\<^sub>1 t\<^sub>2"
-| tc_vrec [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v\<^sub>s fs : ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>v VRec fs : Record ts"
+| tc_vrec [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s fs : ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>v VRec fs : Record ts"
 | tc_vinj [simp]: "lookup x \<Gamma> = Some t \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<forall>tt \<in> set ts. \<Delta> \<turnstile>\<^sub>k tt : Star \<Longrightarrow> 
     \<Delta>,\<Gamma> \<turnstile>\<^sub>v VInj l ts x : Variant ts"
 | tc_vfold [simp]: "lookup x \<Gamma> = Some (subst\<^sub>t\<^sub>t 0 (Inductive k t) t) \<Longrightarrow> 
     insert_at 0 k \<Delta> \<turnstile>\<^sub>k t : Star \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>v VFold t x : Inductive k t"
 | tc_vtyabs [simp]: "insert_at 0 k \<Delta>,map (incr\<^sub>t\<^sub>t 0) \<Gamma> \<turnstile> e : t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>v VTyAbs k e : Forall k t"
-| tc_vnil [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v\<^sub>s [] : []"
-| tc_vcons [simp]: "lookup x \<Gamma> = Some t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>v\<^sub>s vs : ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>v\<^sub>s x # vs : t # ts"
 
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v VAbs t\<^sub>1 e : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v VRec fs : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v VInj e ts l : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v VFold t' e : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v VTyAbs k e : t"
-inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v\<^sub>s [] : ts"
-inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v\<^sub>s v # vs : ts"
 
 inductive typecheck_frame :: "type list \<Rightarrow> frame \<Rightarrow> type \<Rightarrow> type \<Rightarrow> bool" (infix "\<turnstile>\<^sub>s _ : _ \<rightarrow>" 60) where
   tc_sref [simp]: "lookup x \<Gamma> = Some t \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s SRef x : t \<rightarrow> t"
@@ -71,10 +65,9 @@ lemma [simp]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> lookup x \<Gamm
   qed
 
 lemma tc_devalue [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v v : t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> devalue v : t"
-  and "\<Delta>,\<Gamma> \<turnstile>\<^sub>v\<^sub>s vs : ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>f map Var vs : ts"
-  proof (induction \<Delta> \<Gamma> v t and \<Delta> \<Gamma> vs ts rule: typecheck_value_typecheck_vars.inducts)
+  proof (induction \<Delta> \<Gamma> v t rule: typecheck_value.inducts)
   case (tc_vinj x \<Gamma> t l ts \<Delta>)
-    hence "\<Delta>,\<Gamma> \<turnstile> Var x : t" by simp
+    hence "lookup x \<Gamma> = Some t" by simp
     moreover from tc_vinj have "lookup l ts = Some t" by simp
     moreover from tc_vinj have "\<forall>tt \<in> set ts. \<Delta> \<turnstile>\<^sub>k tt : Star" by simp
     ultimately show ?case by simp

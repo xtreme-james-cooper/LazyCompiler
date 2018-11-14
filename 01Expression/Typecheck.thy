@@ -2,29 +2,33 @@ theory Typecheck
 imports Expression Kindcheck
 begin
 
+inductive typecheck_xs :: "kind list \<Rightarrow> type list \<Rightarrow> nat list \<Rightarrow> type list \<Rightarrow> bool" 
+    (infix ",_ \<turnstile>\<^sub>x\<^sub>s _ :" 60) where
+  tcx_nil [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s [] : []"
+| tcx_cons [simp]: "lookup x \<Gamma> = Some t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s x # xs : t # ts"
+
+inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s [] : ts"
+inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s e # fs : ts"
+
 inductive typecheck :: "kind list \<Rightarrow> type list \<Rightarrow> expr \<Rightarrow> type \<Rightarrow> bool" (infix ",_ \<turnstile> _ :" 60) 
-      and typecheck_fs :: "kind list \<Rightarrow> type list \<Rightarrow> expr list \<Rightarrow> type list \<Rightarrow> bool" 
-    (infix ",_ \<turnstile>\<^sub>f _ :" 60)
       and typecheck_cs :: "kind list \<Rightarrow> type list \<Rightarrow> expr list \<Rightarrow> type list \<Rightarrow> type \<Rightarrow> bool" 
     (infix ",_ \<turnstile>\<^sub>c _ : _ \<rightarrow>" 60) where
   tc_var [simp]: "lookup x \<Gamma> = Some t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Var x : t"
 | tc_abs [simp]: "\<Delta>,insert_at 0 t\<^sub>1 \<Gamma> \<turnstile> e : t\<^sub>2 \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t\<^sub>1 : Star \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Abs t\<^sub>1 e : Arrow t\<^sub>1 t\<^sub>2"
 | tc_app [simp]: "\<Delta>,\<Gamma> \<turnstile> e\<^sub>1 : Arrow t\<^sub>1 t\<^sub>2 \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e\<^sub>2 : t\<^sub>1 \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> App e\<^sub>1 e\<^sub>2 : t\<^sub>2"
 | tc_let [simp]: "\<Delta>,\<Gamma> \<turnstile> e\<^sub>1 : t\<^sub>1 \<Longrightarrow> \<Delta>,insert_at 0 t\<^sub>1 \<Gamma> \<turnstile> e\<^sub>2 : t\<^sub>2 \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Let e\<^sub>1 e\<^sub>2 : t\<^sub>2"
-| tc_rec [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Rec fs : Record ts"
+| tc_rec [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s fs : ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Rec fs : Record ts"
 | tc_proj [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Record ts \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Proj e l : t"
-| tc_inj [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<forall>tt \<in> set ts. \<Delta> \<turnstile>\<^sub>k tt : Star \<Longrightarrow> 
-    \<Delta>,\<Gamma> \<turnstile> Inj l ts e : Variant ts"
+| tc_inj [simp]: "lookup x \<Gamma> = Some t \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<forall>tt \<in> set ts. \<Delta> \<turnstile>\<^sub>k tt : Star \<Longrightarrow> 
+    \<Delta>,\<Gamma> \<turnstile> Inj l ts x : Variant ts"
 | tc_case [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Variant ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Case e t cs : t"
-| tc_fold [simp]: "\<Delta>,\<Gamma> \<turnstile> e : subst\<^sub>t\<^sub>t 0 (Inductive k t) t \<Longrightarrow> insert_at 0 k \<Delta> \<turnstile>\<^sub>k t : Star \<Longrightarrow> 
-    \<Delta>,\<Gamma> \<turnstile> Fold t e : Inductive k t"
+| tc_fold [simp]: "lookup x \<Gamma> = Some (subst\<^sub>t\<^sub>t 0 (Inductive k t) t) \<Longrightarrow> 
+    insert_at 0 k \<Delta> \<turnstile>\<^sub>k t : Star \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Fold t x : Inductive k t"
 | tc_unfold [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Inductive k t \<Longrightarrow> insert_at 0 k \<Delta> \<turnstile>\<^sub>k t : Star \<Longrightarrow> 
     \<Delta>,\<Gamma> \<turnstile> Unfold t e : subst\<^sub>t\<^sub>t 0 (Inductive k t) t"
 | tc_tyabs [simp]: "insert_at 0 k \<Delta>,map (incr\<^sub>t\<^sub>t 0) \<Gamma> \<turnstile> e : t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> TyAbs k e : Forall k t"
 | tc_tyapp [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Forall k t \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t' : k \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> TyApp e t' : subst\<^sub>t\<^sub>t 0 t' t"
 | tc_tylet [simp]: "\<Delta>,\<Gamma> \<turnstile> subst\<^sub>t\<^sub>e 0 t' e : t \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t' : k \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> TyLet t' e : t"
-| tcf_nil [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f [] : []"
-| tcf_cons [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>f e # fs : t # ts"
 | tcc_nil [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c [] : [] \<rightarrow> t"
 | tcc_cons [simp]: "\<Delta>,insert_at 0 t' \<Gamma> \<turnstile> e : t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> 
     \<Delta>,\<Gamma> \<turnstile>\<^sub>c e # cs : t' # ts \<rightarrow> t"
@@ -42,26 +46,29 @@ inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> Unfold t' e : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> TyAbs k e : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> TyApp e t' : t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile> TyLet t' e : t"
-inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f [] : ts"
-inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f e # fs : ts"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c [] : ts \<rightarrow> t"
 inductive_cases [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c e # cs : ts \<rightarrow> t"
 
-lemma typecheck_list_append [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f vs : vts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>f nvs : nvts \<Longrightarrow> 
-    \<Delta>,\<Gamma> \<turnstile>\<^sub>f vs @ nvs : vts @ nvts"
-  by (induction \<Gamma> vs vts rule: typecheck_typecheck_fs_typecheck_cs.inducts(2)) simp_all
+lemma typecheck_list_append [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s vs : vts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s nvs : nvts \<Longrightarrow> 
+    \<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s vs @ nvs : vts @ nvts"
+  by (induction \<Gamma> vs vts rule: typecheck_xs.induct) simp_all
 
-lemma typecheck_list_append_inv [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f vs @ nvs : ts \<Longrightarrow> 
-    \<exists>vts nvts. ts = vts @ nvts \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>f vs : vts) \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>f nvs : nvts)"
+lemma typecheck_list_append_inv [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s vs @ nvs : ts \<Longrightarrow> 
+    \<exists>vts nvts. ts = vts @ nvts \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s vs : vts) \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s nvs : nvts)"
   proof (induction vs arbitrary: ts)
   case (Cons v vs)
-    then obtain t ts' where "ts = t # ts' \<and> (\<Delta>,\<Gamma> \<turnstile> v : t) \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>f vs @ nvs : ts')" by fastforce
-    moreover with Cons obtain vts nvts where "ts' = vts @ nvts \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>f vs : vts) \<and> 
-      (\<Delta>,\<Gamma> \<turnstile>\<^sub>f nvs : nvts)" by fastforce
-    ultimately have "ts = (t # vts) @ nvts \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>f v # vs : t # vts) \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>f nvs : nvts)" 
+    then obtain t ts' where "ts = t # ts' \<and> (lookup v \<Gamma> = Some t) \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s vs @ nvs : ts')" 
+      by fastforce
+    moreover with Cons obtain vts nvts where "ts' = vts @ nvts \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s vs : vts) \<and> 
+      (\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s nvs : nvts)" by fastforce
+    ultimately have "ts = (t # vts) @ nvts \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s v # vs : t # vts) \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s nvs : nvts)" 
       by simp
     thus ?case by blast
   qed fastforce+
+
+lemma [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> lookup l xs = Some x \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> 
+    lookup x \<Gamma> = Some t" 
+  by (induction l xs arbitrary: ts rule: lookup.induct) auto
 
 lemma [simp]: "subst\<^sub>t\<^sub>e x t (incr\<^sub>t\<^sub>e x e) = e"
   proof (induction e arbitrary: x t)
@@ -93,14 +100,15 @@ lemma [simp]: "subst\<^sub>t\<^sub>e x t (incr\<^sub>e\<^sub>e y e) = incr\<^sub
 lemma [simp]: "subst\<^sub>e\<^sub>e x e' (subst\<^sub>t\<^sub>e y t e) = subst\<^sub>t\<^sub>e y t (subst\<^sub>e\<^sub>e x (incr\<^sub>t\<^sub>e y e') e)"
   by (induction e arbitrary: x y t e') simp_all
 
+lemma [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> x \<le> length \<Delta> \<Longrightarrow> 
+    insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : map (incr\<^sub>t\<^sub>t x) ts"
+  by (induction \<Delta> \<Gamma> xs ts rule: typecheck_xs.induct) simp_all
+
 lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> length \<Delta> \<Longrightarrow> 
     insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> incr\<^sub>t\<^sub>e x e : incr\<^sub>t\<^sub>t x t"
-  and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> x \<le> length \<Delta> \<Longrightarrow> 
-    insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile>\<^sub>f map (incr\<^sub>t\<^sub>e x) fs : map (incr\<^sub>t\<^sub>t x) ts"
   and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> x \<le> length \<Delta> \<Longrightarrow> 
     insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile>\<^sub>c map (incr\<^sub>t\<^sub>e x) cs : map (incr\<^sub>t\<^sub>t x) ts \<rightarrow> incr\<^sub>t\<^sub>t x t "
-  proof (induction \<Delta> \<Gamma> e t and \<Delta> \<Gamma> fs ts and \<Delta> \<Gamma> cs ts t arbitrary: x and x and x
-         rule: typecheck_typecheck_fs_typecheck_cs.inducts) 
+  proof (induction \<Delta> \<Gamma> e t and \<Delta> \<Gamma> cs ts t arbitrary: x and x rule: typecheck_typecheck_cs.inducts) 
   case (tc_app \<Delta> \<Gamma> e\<^sub>1 t\<^sub>1 t\<^sub>2 e\<^sub>2)
     hence "insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> incr\<^sub>t\<^sub>e x e\<^sub>1 : Arrow (incr\<^sub>t\<^sub>t x t\<^sub>1) (incr\<^sub>t\<^sub>t x t\<^sub>2)" by simp
     moreover from tc_app have "insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> incr\<^sub>t\<^sub>e x e\<^sub>2 : incr\<^sub>t\<^sub>t x t\<^sub>1" by simp
@@ -114,8 +122,8 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> le
     hence "insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> incr\<^sub>t\<^sub>e x e : Record (map (incr\<^sub>t\<^sub>t x) ts)" by simp
     moreover from tc_proj have "lookup l (map (incr\<^sub>t\<^sub>t x) ts) = Some (incr\<^sub>t\<^sub>t x t)" by simp
     ultimately show ?case by simp
-  next case (tc_inj \<Delta> \<Gamma> e t l ts)
-    hence "insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> incr\<^sub>t\<^sub>e x e : incr\<^sub>t\<^sub>t x t" by simp
+  next case (tc_inj y \<Gamma> t l ts \<Delta>)
+    hence "lookup y (map (incr\<^sub>t\<^sub>t x) \<Gamma>) = Some (incr\<^sub>t\<^sub>t x t)" by simp
     moreover from tc_inj have "lookup l (map (incr\<^sub>t\<^sub>t x) ts) = Some (incr\<^sub>t\<^sub>t x t)" by simp
     moreover from tc_inj have "\<forall>tt \<in> set (map (incr\<^sub>t\<^sub>t x) ts). insert_at x k \<Delta> \<turnstile>\<^sub>k tt : Star" by simp
     ultimately show ?case by simp
@@ -124,9 +132,10 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> le
     moreover from tc_case have "insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile>\<^sub>c map (incr\<^sub>t\<^sub>e x) cs : 
       map (incr\<^sub>t\<^sub>t x) ts \<rightarrow> incr\<^sub>t\<^sub>t x t" by simp
     ultimately show ?case by simp
-  next case (tc_fold \<Delta> \<Gamma> e k' t)
-    hence "insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> incr\<^sub>t\<^sub>e x e : 
-      subst\<^sub>t\<^sub>t 0 (incr\<^sub>t\<^sub>t x (Inductive k' t)) (incr\<^sub>t\<^sub>t (Suc x) t)" by (metis le0 subst_incr_swap)
+  next case (tc_fold y \<Gamma> k' t \<Delta>)
+    hence "lookup y (map (incr\<^sub>t\<^sub>t x) \<Gamma>) = Some (incr\<^sub>t\<^sub>t x (subst\<^sub>t\<^sub>t 0 (Inductive k' t) t))" by simp
+    hence "lookup y (map (incr\<^sub>t\<^sub>t x) \<Gamma>) = 
+      Some (subst\<^sub>t\<^sub>t 0 (incr\<^sub>t\<^sub>t x (Inductive k' t)) (incr\<^sub>t\<^sub>t (Suc x) t))" by (metis le0 subst_incr_swap)
     with tc_fold show ?case by simp
   next case (tc_unfold \<Delta> \<Gamma> e k' t)
     hence "insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> Unfold (incr\<^sub>t\<^sub>t (Suc x) t) (incr\<^sub>t\<^sub>e x e) : 
@@ -138,8 +147,7 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> le
     hence "insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> incr\<^sub>t\<^sub>e x e : Forall k' (incr\<^sub>t\<^sub>t (Suc x) t)" by simp 
     moreover from tc_tyapp have "insert_at x k \<Delta> \<turnstile>\<^sub>k incr\<^sub>t\<^sub>t x t' : k'" by simp
     ultimately have "insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> TyApp (incr\<^sub>t\<^sub>e x e) (incr\<^sub>t\<^sub>t x t') : 
-      subst\<^sub>t\<^sub>t 0 (incr\<^sub>t\<^sub>t x t') (incr\<^sub>t\<^sub>t (Suc x) t)"
-        by (metis typecheck_typecheck_fs_typecheck_cs.tc_tyapp)
+      subst\<^sub>t\<^sub>t 0 (incr\<^sub>t\<^sub>t x t') (incr\<^sub>t\<^sub>t (Suc x) t)" by (metis typecheck_typecheck_cs.tc_tyapp)
     thus ?case by simp
   next case (tc_tylet \<Delta> \<Gamma> t' e t k')
     hence "insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> subst\<^sub>t\<^sub>e 0 (incr\<^sub>t\<^sub>t x t') (incr\<^sub>t\<^sub>e (Suc x) e) : incr\<^sub>t\<^sub>t x t" 
@@ -148,15 +156,16 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> le
     ultimately show ?case by simp
   qed simp_all
 
+lemma [simp]: "insert_at x k \<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t' : k \<Longrightarrow> x \<le> length \<Delta> \<Longrightarrow> 
+    \<Delta>,map (subst\<^sub>t\<^sub>t x t') \<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : map (subst\<^sub>t\<^sub>t x t') ts"
+  by (induction "insert_at x k \<Delta>" \<Gamma> xs ts rule: typecheck_xs.induct) simp_all
+
 lemma tc_subst\<^sub>t\<^sub>e [simp]: "insert_at x k \<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t' : k \<Longrightarrow> x \<le> length \<Delta> \<Longrightarrow> 
     \<Delta>,map (subst\<^sub>t\<^sub>t x t') \<Gamma> \<turnstile> subst\<^sub>t\<^sub>e x t' e : subst\<^sub>t\<^sub>t x t' t"
-  and [simp]: "insert_at x k \<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t' : k \<Longrightarrow> x \<le> length \<Delta> \<Longrightarrow> 
-    \<Delta>,map (subst\<^sub>t\<^sub>t x t') \<Gamma> \<turnstile>\<^sub>f map (subst\<^sub>t\<^sub>e x t') fs : map (subst\<^sub>t\<^sub>t x t') ts"
   and [simp]: "insert_at x k \<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t' : k \<Longrightarrow> x \<le> length \<Delta> \<Longrightarrow> 
     \<Delta>,map (subst\<^sub>t\<^sub>t x t') \<Gamma> \<turnstile>\<^sub>c map (subst\<^sub>t\<^sub>e x t') cs : map (subst\<^sub>t\<^sub>t x t') ts \<rightarrow> subst\<^sub>t\<^sub>t x t' t "
-  proof (induction "insert_at x k \<Delta>" \<Gamma> e t and "insert_at x k \<Delta>" \<Gamma> fs ts and "insert_at x k \<Delta>" \<Gamma> cs ts t 
-         arbitrary: \<Delta> x t' and \<Delta> x t' and \<Delta> x t'
-         rule: typecheck_typecheck_fs_typecheck_cs.inducts) 
+  proof (induction "insert_at x k \<Delta>" \<Gamma> e t and "insert_at x k \<Delta>" \<Gamma> cs ts t 
+         arbitrary: \<Delta> x t' and \<Delta> x t' rule: typecheck_typecheck_cs.inducts) 
   case (tc_inj \<Gamma> e t l ts)
     moreover hence "\<forall>tt \<in> set (map (subst\<^sub>t\<^sub>t x t') ts). \<Delta> \<turnstile>\<^sub>k tt : Star" by fastforce
     ultimately show ?case by fastforce
@@ -167,12 +176,15 @@ lemma tc_subst\<^sub>t\<^sub>e [simp]: "insert_at x k \<Delta>,\<Gamma> \<turnst
     ultimately show ?case by simp
   qed fastforce+
 
+lemma [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> 
+    \<Delta>,insert_at x t' \<Gamma> \<turnstile>\<^sub>x\<^sub>s map (\<lambda>y. if x \<le> y then Suc y else y) xs : ts"
+  by (induction \<Delta> \<Gamma> xs ts rule: typecheck_xs.induct) simp_all
+
 lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Delta>,insert_at x t' \<Gamma> \<turnstile> incr\<^sub>e\<^sub>e x e : t"
-  and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Delta>,insert_at x t' \<Gamma> \<turnstile>\<^sub>f map (incr\<^sub>e\<^sub>e x) fs : ts"
   and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> 
     \<Delta>,insert_at x t' \<Gamma> \<turnstile>\<^sub>c map (incr\<^sub>e\<^sub>e (Suc x)) cs : ts \<rightarrow> t"
-  proof (induction \<Delta> \<Gamma> e t and \<Delta> \<Gamma> fs ts and \<Delta> \<Gamma> cs ts t arbitrary: x t' and x t' and x t'
-         rule: typecheck_typecheck_fs_typecheck_cs.inducts) 
+  proof (induction \<Delta> \<Gamma> e t and \<Delta> \<Gamma> cs ts t arbitrary: x t' and x t'
+         rule: typecheck_typecheck_cs.inducts) 
   case (tc_app \<Delta> \<Gamma> e\<^sub>1 t\<^sub>1 t\<^sub>2 e\<^sub>2)
     hence "\<Delta>,insert_at x t' \<Gamma> \<turnstile> incr\<^sub>e\<^sub>e x e\<^sub>1 : Arrow t\<^sub>1 t\<^sub>2" by simp
     moreover from tc_app have "\<Delta>,insert_at x t' \<Gamma> \<turnstile> incr\<^sub>e\<^sub>e x e\<^sub>2 : t\<^sub>1" by simp
@@ -185,8 +197,7 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> le
     hence "\<Delta>,insert_at x t' \<Gamma> \<turnstile> incr\<^sub>e\<^sub>e x e : Record ts" by simp
     moreover from tc_proj have "lookup l ts = Some t" by simp
     ultimately show ?case by simp
-  next case (tc_inj \<Delta> \<Gamma> e t l ts)
-    hence "\<Delta>,insert_at x t' \<Gamma> \<turnstile> incr\<^sub>e\<^sub>e x e : t" by simp
+  next case (tc_inj y \<Gamma> t l ts \<Delta>)
     moreover from tc_inj have "lookup l ts = Some t" by simp
     moreover from tc_inj have "\<forall>tt \<in> set ts. \<Delta> \<turnstile>\<^sub>k tt : Star" by simp
     ultimately show ?case by simp
@@ -199,25 +210,21 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> le
     ultimately show ?case by fastforce
   qed simp_all
 
-lemma [simp]: "\<Delta>,insert_at x t' \<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e' : t' \<Longrightarrow> 
+lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> lookup x \<Gamma> = Some t' \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e' : t' \<Longrightarrow> 
     \<Delta>,\<Gamma> \<turnstile> subst\<^sub>e\<^sub>e x e' e : t"
-  and [simp]: "\<Delta>,insert_at x t' \<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e' : t' \<Longrightarrow> 
-    \<Delta>,\<Gamma> \<turnstile>\<^sub>f map (subst\<^sub>e\<^sub>e x e') fs : ts"
-  and [simp]: "\<Delta>,insert_at x t' \<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e' : t' \<Longrightarrow> 
+  and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> lookup x \<Gamma> = Some t' \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e' : t' \<Longrightarrow> 
     \<Delta>,\<Gamma> \<turnstile>\<^sub>c map (subst\<^sub>e\<^sub>e (Suc x) (incr\<^sub>e\<^sub>e 0 e')) cs : ts \<rightarrow> t "
-  proof (induction \<Delta> "insert_at x t' \<Gamma>" e t and \<Delta> "insert_at x t' \<Gamma>" fs ts 
-               and \<Delta> "insert_at x t' \<Gamma>" cs ts t 
-         arbitrary: \<Gamma> x e' t' and \<Gamma> x e' t' and \<Gamma> x e' t'
-         rule: typecheck_typecheck_fs_typecheck_cs.inducts)
-  case (tc_var y t)
-    thus ?case by (cases y) auto
-  qed fastforce+
+  by (induction \<Delta> \<Gamma> e t and \<Delta> \<Gamma> cs ts t arbitrary: x e' t' and x e' t' 
+      rule: typecheck_typecheck_cs.inducts) 
+     fastforce+
+
+lemma tcxs_weaken [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> \<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts"
+  by (induction \<Delta> \<Gamma> xs ts rule: typecheck_xs.induct) simp_all
 
 lemma tc_weaken [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> \<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e : t"
-  and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> \<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile>\<^sub>f fs : ts"
   and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> \<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t "
-  proof (induction \<Delta> \<Gamma> e t and \<Delta> \<Gamma> fs ts and \<Delta> \<Gamma> cs ts t arbitrary: t' and t' and t' 
-         rule: typecheck_typecheck_fs_typecheck_cs.inducts)
+  proof (induction \<Delta> \<Gamma> e t and \<Delta> \<Gamma> cs ts t arbitrary: t' and t' 
+         rule: typecheck_typecheck_cs.inducts)
   case (tc_app \<Delta> \<Gamma> e\<^sub>1 t\<^sub>1 t\<^sub>2 e\<^sub>2)
     hence "\<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e\<^sub>1 : Arrow t\<^sub>1 t\<^sub>2" by simp
     moreover from tc_app have "\<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e\<^sub>2 : t\<^sub>1" by simp
@@ -229,10 +236,10 @@ lemma tc_weaken [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> 
   next case (tc_proj \<Delta> \<Gamma> e ts l t)
     moreover hence "\<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e : Record ts" by simp
     ultimately show ?case by fastforce
-  next case (tc_inj \<Delta> \<Gamma> e t l ts)
+  next case (tc_inj x \<Gamma> t l ts \<Delta>)
     hence "lookup l ts = Some t" by simp
     moreover from tc_inj have "\<forall>tt\<in>set ts. \<Delta> \<turnstile>\<^sub>k tt : Star" by simp
-    moreover from tc_inj have "\<Delta> ,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e : t" by simp
+    moreover from tc_inj have "lookup x (insert_at (length \<Gamma>) t' \<Gamma>) = Some t" by simp
     ultimately show ?case by simp
   next case (tc_case \<Delta> \<Gamma> e ts cs t)
     hence "\<Delta> ,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e : Variant ts" by simp

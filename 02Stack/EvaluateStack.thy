@@ -8,19 +8,11 @@ inductive evaluate :: "stack_state \<Rightarrow> stack_state \<Rightarrow> bool"
 | ev_app [simp]: "StackState (Eval (App e\<^sub>1 e\<^sub>2)) s h \<leadsto>\<^sub>s StackState (Eval e\<^sub>1) (SApp e\<^sub>2 # s) h" 
 | ev_let [simp]: "StackState (Eval (Let e\<^sub>1 e\<^sub>2)) s h \<leadsto>\<^sub>s 
     StackState (Eval (subst\<^sub>e\<^sub>e 0 (Var (length\<^sub>h h)) e\<^sub>2)) s (extend\<^sub>h h e\<^sub>1)"
-| ev_rec1 [simp]: "list_all is_var vs \<Longrightarrow> \<not> is_var e \<Longrightarrow> 
-    StackState (Eval (Rec (vs @ [e] @ nvs))) s h \<leadsto>\<^sub>s 
-      StackState (Eval (Rec (vs @ [Var (length\<^sub>h h)] @ nvs))) s (extend\<^sub>h h e)" 
-| ev_rec2 [simp]: "list_all is_var vs \<Longrightarrow>
-    StackState (Eval (Rec vs)) s h \<leadsto>\<^sub>s StackState (Return (VRec (map devar vs))) s h" 
+| ev_rec [simp]: "StackState (Eval (Rec vs)) s h \<leadsto>\<^sub>s StackState (Return (VRec vs)) s h" 
 | ev_proj [simp]: "StackState (Eval (Proj e l)) s h \<leadsto>\<^sub>s StackState (Eval e) (SProj l # s) h"
-| ev_inj1 [simp]: "StackState (Eval (Inj l ts (Var x))) s h \<leadsto>\<^sub>s StackState (Return (VInj l ts x)) s h"
-| ev_inj2 [simp]: "\<not> is_var e \<Longrightarrow> StackState (Eval (Inj l ts e)) s h \<leadsto>\<^sub>s 
-    StackState (Return (VInj l ts (length\<^sub>h h))) s (extend\<^sub>h h e)"
+| ev_inj [simp]: "StackState (Eval (Inj l ts x)) s h \<leadsto>\<^sub>s StackState (Return (VInj l ts x)) s h"
 | ev_case [simp]: "StackState (Eval (Case e t cs)) s h \<leadsto>\<^sub>s StackState (Eval e) (SCase t cs # s) h"
-| ev_fold1 [simp]: "StackState (Eval (Fold t (Var x))) s h \<leadsto>\<^sub>s StackState (Return (VFold t x)) s h" 
-| ev_fold2 [simp]: "\<not> is_var e \<Longrightarrow> 
-    StackState (Eval (Fold t e)) s h \<leadsto>\<^sub>s StackState (Return (VFold t (length\<^sub>h h))) s (extend\<^sub>h h e)" 
+| ev_fold [simp]: "StackState (Eval (Fold t x)) s h \<leadsto>\<^sub>s StackState (Return (VFold t x)) s h" 
 | ev_unfold [simp]: "StackState (Eval (Unfold t e)) s h \<leadsto>\<^sub>s StackState (Eval e) (SUnfold t # s) h"  
 | ev_tyabs [simp]: "StackState (Eval (TyAbs k e)) s h \<leadsto>\<^sub>s StackState (Return (VTyAbs k e)) s h" 
 | ev_tyapp [simp]: "StackState (Eval (TyApp e t)) s h \<leadsto>\<^sub>s StackState (Eval e) (STyApp t # s) h" 
@@ -44,28 +36,26 @@ fun is_final :: "stack_state \<Rightarrow> bool" where
 | "is_final (StackState (Eval e) s h) = False"
 
 lemma vcanonical_arrow [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v v : Arrow t\<^sub>1 t\<^sub>2 \<Longrightarrow> \<exists>e. v = VAbs t\<^sub>1 e"
-  by (induction \<Gamma> v "Arrow t\<^sub>1 t\<^sub>2" rule: typecheck_value_typecheck_vars.inducts(1)) simp_all
+  by (induction \<Gamma> v "Arrow t\<^sub>1 t\<^sub>2" rule: typecheck_value.induct) simp_all
 
-lemma vcanonical_record [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v v : Record ts \<Longrightarrow> \<exists>vs. v = VRec vs \<and> \<Delta>,\<Gamma> \<turnstile>\<^sub>v\<^sub>s vs : ts"
-  by (induction \<Gamma> v "Record ts" rule: typecheck_value_typecheck_vars.inducts(1)) simp_all
+lemma vcanonical_record [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v v : Record ts \<Longrightarrow> \<exists>vs. v = VRec vs \<and> \<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s vs : ts"
+  by (induction \<Gamma> v "Record ts" rule: typecheck_value.induct) simp_all
 
 lemma vcanonical_variant [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v v : Variant ts \<Longrightarrow> \<exists>l x. v = VInj l ts x \<and> l < length ts"
-  by (induction \<Gamma> v "Variant ts" rule: typecheck_value_typecheck_vars.inducts(1)) auto
+  by (induction \<Gamma> v "Variant ts" rule: typecheck_value.induct) auto
 
 lemma vcanonical_inductive [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v v : Inductive k t \<Longrightarrow> \<exists>x. v = VFold t x"
-  by (induction \<Gamma> v "Inductive k t" rule: typecheck_value_typecheck_vars.inducts(1)) auto
+  by (induction \<Gamma> v "Inductive k t" rule: typecheck_value.induct) auto
 
 lemma vcanonical_forall [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v v : Forall k t \<Longrightarrow> \<exists>e. v = VTyAbs k e"
-  by (induction \<Gamma> v "Forall k t" rule: typecheck_value_typecheck_vars.inducts(1)) auto
+  by (induction \<Gamma> v "Forall k t" rule: typecheck_value.induct) auto
 
-lemma lookup_in_tc [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v\<^sub>s xs : ts \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<exists>x. lookup l xs = Some x"
+lemma lookup_in_tc [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<exists>x. lookup l xs = Some x"
   by (induction l xs arbitrary: ts rule: lookup.induct) auto
 
 lemma "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> True"
-  and "\<Delta>,\<Gamma> \<turnstile>\<^sub>f fs : ts \<Longrightarrow> True"
   and lookup_in_cs [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> l < length ts \<Longrightarrow> \<exists>e. lookup l cs = Some e"
-  proof (induction \<Delta> \<Gamma> e t and \<Delta> \<Gamma> fs ts and \<Delta> \<Gamma> cs ts t arbitrary: and and l 
-         rule: typecheck_typecheck_fs_typecheck_cs.inducts)
+  proof (induction \<Delta> \<Gamma> e t and \<Delta> \<Gamma> cs ts t arbitrary: and l rule: typecheck_typecheck_cs.inducts)
   case tcc_cons
     thus ?case by (induction l) simp_all
   qed simp_all
@@ -84,15 +74,15 @@ theorem progress: "\<Sigma> hastype t \<Longrightarrow> is_final \<Sigma> \<or> 
       next case Let
         thus ?case by (metis ev_let)
       next case Rec
-        thus ?case by (metis split_fields ev_rec1 ev_rec2)
+        thus ?case by (metis ev_rec)
       next case Proj
         thus ?case by (metis ev_proj)
-      next case (Inj l ts e) 
-        thus ?case by (cases e) (meson ev_inj1 ev_inj2 is_var.simps)+
+      next case Inj
+        thus ?case by (metis ev_inj)
       next case Case
         thus ?case by (metis ev_case)
-      next case (Fold tt e)
-        thus ?case by (cases e) (meson ev_fold1 ev_fold2 is_var.simps)+
+      next case Fold
+        thus ?case by (metis ev_fold)
       next case Unfold
         thus ?case by (metis ev_unfold)
       next case TyAbs
@@ -105,9 +95,9 @@ theorem progress: "\<Sigma> hastype t \<Longrightarrow> is_final \<Sigma> \<or> 
   next case (tc_return_state \<Gamma> s t t' v h)
     thus ?case
       proof (induction \<Gamma> s t t' rule: typecheck_stack.induct)
-      case (tcs_cons \<Gamma> f \<Gamma>' t t' s t'')
+      case (tcs_cons \<Gamma> f t t' s t'')
         thus ?case
-          proof (induction \<Gamma> f \<Gamma>' t t' rule: typecheck_frame.induct)
+          proof (induction \<Gamma> f t t' rule: typecheck_frame.induct)
           case tc_sref
             thus ?case by (metis ret_ref)
           next case tc_sapp
@@ -148,17 +138,9 @@ theorem preservation: "\<Sigma> \<leadsto>\<^sub>s \<Sigma>' \<Longrightarrow> \
     with L have Y: "[],insert_at 0 t\<^sub>1 (insert_at (length\<^sub>h h) t\<^sub>1 \<Gamma>) \<turnstile> e\<^sub>2 : t\<^sub>2" by simp
     from L have "lookup (length\<^sub>h h) (insert_at (length\<^sub>h h) t\<^sub>1 \<Gamma>) = Some t\<^sub>1" by simp
     with T X Y show ?case by simp
-  next case ev_rec1 
-    thus ?case by metis
-  next case ev_rec2  
-    thus ?case by metis
   next case ev_proj 
     thus ?case by metis
-  next case ev_inj2 
-    thus ?case by metis
   next case ev_case 
-    thus ?case by metis
-  next case ev_fold2 
     thus ?case by metis
   next case ev_unfold 
     thus ?case by metis

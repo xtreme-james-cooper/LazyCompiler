@@ -1,5 +1,5 @@
 theory Expression
-imports Type
+imports Type "../Index"
 begin
 
 datatype expr = 
@@ -47,16 +47,31 @@ primrec subst\<^sub>t\<^sub>e :: "nat \<Rightarrow> type \<Rightarrow> expr \<Ri
 | "subst\<^sub>t\<^sub>e x t' (TyApp e t) = TyApp (subst\<^sub>t\<^sub>e x t' e) (subst\<^sub>t\<^sub>t x t' t)"
 | "subst\<^sub>t\<^sub>e x t' (TyLet t e) = TyLet (subst\<^sub>t\<^sub>t x t' t) (subst\<^sub>t\<^sub>e (Suc x) (incr\<^sub>t\<^sub>t 0 t') e)"
 
+primrec subst\<^sub>x\<^sub>e :: "nat \<Rightarrow> nat \<Rightarrow> expr \<Rightarrow> expr" where
+  "subst\<^sub>x\<^sub>e x x' (Var y) = Var (if x = y then x' else decr x y)"
+| "subst\<^sub>x\<^sub>e x x' (Abs t e) = Abs t (subst\<^sub>x\<^sub>e (Suc x) (Suc x') e)"
+| "subst\<^sub>x\<^sub>e x x' (App e\<^sub>1 e\<^sub>2) = App (subst\<^sub>x\<^sub>e x x' e\<^sub>1) (subst\<^sub>x\<^sub>e x x' e\<^sub>2)"
+| "subst\<^sub>x\<^sub>e x x' (Let e\<^sub>1 e\<^sub>2) = Let (subst\<^sub>x\<^sub>e x x' e\<^sub>1) (subst\<^sub>x\<^sub>e (Suc x) (Suc x') e\<^sub>2)"
+| "subst\<^sub>x\<^sub>e x x' (Rec ys) = Rec (map (\<lambda>y. if x = y then x' else decr x y) ys)"
+| "subst\<^sub>x\<^sub>e x x' (Proj e l) = Proj (subst\<^sub>x\<^sub>e x x' e) l"
+| "subst\<^sub>x\<^sub>e x x' (Inj l ts y) = Inj l ts (if x = y then x' else decr x y)"
+| "subst\<^sub>x\<^sub>e x x' (Case e t cs) = Case (subst\<^sub>x\<^sub>e x x' e) t (map (subst\<^sub>x\<^sub>e (Suc x) (Suc x')) cs)"
+| "subst\<^sub>x\<^sub>e x x' (Fold t y) = Fold t (if x = y then x' else decr x y)"
+| "subst\<^sub>x\<^sub>e x x' (Unfold t e) = Unfold t (subst\<^sub>x\<^sub>e x x' e)"
+| "subst\<^sub>x\<^sub>e x x' (TyAbs k e) = TyAbs k (subst\<^sub>x\<^sub>e x x' e)"
+| "subst\<^sub>x\<^sub>e x x' (TyApp e t) = TyApp (subst\<^sub>x\<^sub>e x x' e) t"
+| "subst\<^sub>x\<^sub>e x x' (TyLet t e) = TyLet t (subst\<^sub>x\<^sub>e x x' e)"
+
 primrec incr\<^sub>e\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr" where
-  "incr\<^sub>e\<^sub>e x (Var y) = Var (if x \<le> y then Suc y else y)"
+  "incr\<^sub>e\<^sub>e x (Var y) = Var (incr x y)"
 | "incr\<^sub>e\<^sub>e x (Abs t e) = Abs t (incr\<^sub>e\<^sub>e (Suc x) e)"
 | "incr\<^sub>e\<^sub>e x (App e\<^sub>1 e\<^sub>2) = App (incr\<^sub>e\<^sub>e x e\<^sub>1) (incr\<^sub>e\<^sub>e x e\<^sub>2)"
 | "incr\<^sub>e\<^sub>e x (Let e\<^sub>1 e\<^sub>2) = Let (incr\<^sub>e\<^sub>e x e\<^sub>1) (incr\<^sub>e\<^sub>e (Suc x) e\<^sub>2)"
-| "incr\<^sub>e\<^sub>e x (Rec ys) = Rec (map (\<lambda>y. if x \<le> y then Suc y else y) ys)"
+| "incr\<^sub>e\<^sub>e x (Rec ys) = Rec (map (incr x) ys)"
 | "incr\<^sub>e\<^sub>e x (Proj e l) = Proj (incr\<^sub>e\<^sub>e x e) l"
-| "incr\<^sub>e\<^sub>e x (Inj l ts y) = Inj l ts (if x \<le> y then Suc y else y)"
+| "incr\<^sub>e\<^sub>e x (Inj l ts y) = Inj l ts (incr x y)"
 | "incr\<^sub>e\<^sub>e x (Case e t cs) = Case (incr\<^sub>e\<^sub>e x e) t (map (incr\<^sub>e\<^sub>e (Suc x)) cs)"
-| "incr\<^sub>e\<^sub>e x (Fold t y) = Fold t (if x \<le> y then Suc y else y)"
+| "incr\<^sub>e\<^sub>e x (Fold t y) = Fold t (incr x y)"
 | "incr\<^sub>e\<^sub>e x (Unfold t e) = Unfold t (incr\<^sub>e\<^sub>e x e)"
 | "incr\<^sub>e\<^sub>e x (TyAbs k e) = TyAbs k (incr\<^sub>e\<^sub>e x e)"
 | "incr\<^sub>e\<^sub>e x (TyApp e t) = TyApp (incr\<^sub>e\<^sub>e x e) t"

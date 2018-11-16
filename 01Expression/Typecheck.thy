@@ -70,6 +70,10 @@ lemma [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrigh
     lookup x \<Gamma> = Some t" 
   by (induction l xs arbitrary: ts rule: lookup.induct) auto
 
+lemma [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> lookup l cs = Some e \<Longrightarrow> lookup l ts = Some t' \<Longrightarrow> 
+    \<Delta>,insert_at 0 t' \<Gamma> \<turnstile> e : t" 
+  by (induction l cs arbitrary: ts rule: lookup.induct) auto
+
 lemma [simp]: "subst\<^sub>t\<^sub>e x t (incr\<^sub>t\<^sub>e x e) = e"
   proof (induction e arbitrary: x t)
   case (Rec es)
@@ -99,6 +103,9 @@ lemma [simp]: "subst\<^sub>t\<^sub>e x t (incr\<^sub>e\<^sub>e y e) = incr\<^sub
 
 lemma [simp]: "subst\<^sub>e\<^sub>e x e' (subst\<^sub>t\<^sub>e y t e) = subst\<^sub>t\<^sub>e y t (subst\<^sub>e\<^sub>e x (incr\<^sub>t\<^sub>e y e') e)"
   by (induction e arbitrary: x y t e') simp_all
+
+lemma [simp]: "subst\<^sub>x\<^sub>e x x' (subst\<^sub>t\<^sub>e y t e) = subst\<^sub>t\<^sub>e y t (subst\<^sub>x\<^sub>e x x' e)"
+  by (induction e arbitrary: x x' y t) simp_all
 
 lemma [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> x \<le> length \<Delta> \<Longrightarrow> 
     insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : map (incr\<^sub>t\<^sub>t x) ts"
@@ -176,8 +183,20 @@ lemma tc_subst\<^sub>t\<^sub>e [simp]: "insert_at x k \<Delta>,\<Gamma> \<turnst
     ultimately show ?case by simp
   qed fastforce+
 
+lemma [simp]: "\<Delta>,insert_at x t' \<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> lookup x' \<Gamma> = Some t' \<Longrightarrow>
+    \<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s map (\<lambda>y. if x = y then x' else decr x y) xs : ts"
+  by (induction \<Delta> "insert_at x t' \<Gamma>" xs ts rule: typecheck_xs.induct) auto
+
+lemma tc_subst\<^sub>x\<^sub>e [simp]: "\<Delta>,insert_at x t' \<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> lookup x' \<Gamma> = Some t' \<Longrightarrow>
+    \<Delta>,\<Gamma> \<turnstile> subst\<^sub>x\<^sub>e x x' e : t"
+  and [simp]: "\<Delta>,insert_at x t' \<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> lookup x' \<Gamma> = Some t' \<Longrightarrow>
+    \<Delta>,\<Gamma> \<turnstile>\<^sub>c map (subst\<^sub>x\<^sub>e (Suc x) (Suc x')) cs : ts \<rightarrow> t "
+  by (induction \<Delta> "insert_at x t' \<Gamma>" e t and \<Delta> "insert_at x t' \<Gamma>" cs ts t 
+      arbitrary: \<Gamma> x x' t' and \<Gamma> x x' t' rule: typecheck_typecheck_cs.inducts) 
+     fastforce+
+
 lemma [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> 
-    \<Delta>,insert_at x t' \<Gamma> \<turnstile>\<^sub>x\<^sub>s map (\<lambda>y. if x \<le> y then Suc y else y) xs : ts"
+    \<Delta>,insert_at x t' \<Gamma> \<turnstile>\<^sub>x\<^sub>s map (\<lambda>y. incr x y) xs : ts"
   by (induction \<Delta> \<Gamma> xs ts rule: typecheck_xs.induct) simp_all
 
 lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Delta>,insert_at x t' \<Gamma> \<turnstile> incr\<^sub>e\<^sub>e x e : t"

@@ -93,10 +93,6 @@ lemma progress': "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow>
 theorem progress: "\<Delta>,[] \<turnstile> e : t \<Longrightarrow> is_value e \<or> (\<exists>e'. e \<leadsto> e')"
   using progress' by fastforce
 
-lemma [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> lookup l cs = Some e \<Longrightarrow> lookup l ts = Some t' \<Longrightarrow> 
-    \<Delta>,insert_at 0 t' \<Gamma> \<turnstile> e : t" 
-  by (induction l cs arbitrary: ts rule: lookup.induct) auto
-
 theorem preservation: "e \<leadsto> e' \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e' : t"
   proof (induction e e' arbitrary: \<Delta> \<Gamma> t rule: evaluate.induct) 
   case (ev_proj2 l xs x)

@@ -125,6 +125,27 @@ primrec head_var :: "expr \<Rightarrow> nat option" where
 | "head_var (TyApp e t) = head_var e"
 | "head_var (TyLet t e) = None"
 
+definition var_reduce :: "nat set \<Rightarrow> nat set" where
+  "var_reduce xs = (\<lambda>x. x - 1) ` (xs - {0})"
+
+primrec free_vars :: "expr \<Rightarrow> nat set" 
+    and free_vars\<^sub>c :: "expr list \<Rightarrow> nat set" where
+  "free_vars (Var x) = {x}"
+| "free_vars (Abs t e) = var_reduce (free_vars e)"
+| "free_vars (App e\<^sub>1 e\<^sub>2) = free_vars e\<^sub>1 \<union> free_vars e\<^sub>2"
+| "free_vars (Let e\<^sub>1 e\<^sub>2) = free_vars e\<^sub>1 \<union> var_reduce (free_vars e\<^sub>2)"
+| "free_vars (Rec xs) = set xs"
+| "free_vars (Proj e l) = free_vars e"
+| "free_vars (Inj l ts x) = {x}"
+| "free_vars (Case e t cs) = free_vars e \<union> free_vars\<^sub>c cs"
+| "free_vars (Fold t x) = {x}"
+| "free_vars (Unfold t e) = free_vars e"
+| "free_vars (TyAbs k e) = free_vars e"
+| "free_vars (TyApp e t) = free_vars e"
+| "free_vars (TyLet t e) = free_vars e"
+| "free_vars\<^sub>c [] = {}"
+| "free_vars\<^sub>c (c # cs) = var_reduce (free_vars c) \<union> free_vars\<^sub>c cs"
+
 lemma [simp]: "size (subst\<^sub>t\<^sub>e x t e) = size e"
   proof (induction e arbitrary: x t)
   case (Rec es)

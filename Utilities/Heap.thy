@@ -19,9 +19,6 @@ primrec extend\<^sub>h :: "'a heap \<Rightarrow> 'a \<Rightarrow> 'a heap" where
 primrec update\<^sub>h :: "'a heap \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a heap" where
   "update\<^sub>h (Heap h n) x a = Heap (h(x := a)) n"
 
-primrec unextend\<^sub>h :: "'a heap \<Rightarrow> 'a \<times> 'a heap" where
-  "unextend\<^sub>h (Heap h n) = (h n, Heap (h(n := undefined)) (n - 1))"
-
 lemma [simp]: "length\<^sub>h empty\<^sub>h = 0"
   by (simp add: empty\<^sub>h_def)
 
@@ -29,7 +26,7 @@ lemma [simp]: "length\<^sub>h (extend\<^sub>h h a) = Suc (length\<^sub>h h)"
   by (induction h) simp_all
 
 lemma [simp]: "length\<^sub>h (update\<^sub>h h x a) = length\<^sub>h h"
-  by (induction h) simp_all 
+  by (induction h) simp_all
 
 lemma [simp]: "lookup\<^sub>h y (update\<^sub>h h x a) = (if x = y then a else lookup\<^sub>h y h)"
   by (induction h) simp_all

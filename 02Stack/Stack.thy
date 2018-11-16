@@ -30,17 +30,4 @@ primrec devalue :: "val \<Rightarrow> expr" where
 | "devalue (VFold t x) = Fold t x"
 | "devalue (VTyAbs k e) = TyAbs k e"
 
-fun unstack :: "expr \<Rightarrow> frame list \<Rightarrow> expr heap \<Rightarrow> expr" where
-  "unstack e [] h = e"
-| "unstack e (SRef x # s) h = unstack (Var x) s (update\<^sub>h h x e)"
-| "unstack e (SApp e' # s) h = unstack (App e e') s h"
-| "unstack e (SProj l # s) h = unstack (Proj e l) s h"
-| "unstack e (SCase t cs # s) h = unstack (Case e t cs) s h"
-| "unstack e (SUnfold t # s) h = unstack (Unfold t e) s h"
-| "unstack e (STyApp t # s) h = unstack (TyApp e t) s h"
-
-fun unstack_state :: "stack_state \<Rightarrow> expr" where
-  "unstack_state (StackState (Eval e) s h) = unstack e s h"
-| "unstack_state (StackState (Return v) s h) = unstack (devalue v) s h"
-
 end

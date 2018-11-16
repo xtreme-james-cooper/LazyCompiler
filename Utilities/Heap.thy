@@ -4,6 +4,9 @@ begin
 
 datatype 'a heap = Heap "nat \<Rightarrow> 'a" nat
 
+definition empty\<^sub>h :: "'a heap" where
+  "empty\<^sub>h = Heap (\<lambda>x. undefined) 0"
+
 primrec length\<^sub>h :: "'a heap \<Rightarrow> nat" where
   "length\<^sub>h (Heap h n) = n"
 
@@ -15,6 +18,12 @@ primrec extend\<^sub>h :: "'a heap \<Rightarrow> 'a \<Rightarrow> 'a heap" where
 
 primrec update\<^sub>h :: "'a heap \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a heap" where
   "update\<^sub>h (Heap h n) x a = Heap (h(x := a)) n"
+
+primrec unextend\<^sub>h :: "'a heap \<Rightarrow> 'a \<times> 'a heap" where
+  "unextend\<^sub>h (Heap h n) = (h n, Heap (h(n := undefined)) (n - 1))"
+
+lemma [simp]: "length\<^sub>h empty\<^sub>h = 0"
+  by (simp add: empty\<^sub>h_def)
 
 lemma [simp]: "length\<^sub>h (extend\<^sub>h h a) = Suc (length\<^sub>h h)"
   by (induction h) simp_all

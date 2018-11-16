@@ -1,5 +1,5 @@
 theory Total
-imports "01Expression/Determinism" "02Stack/StackDeterminism" "Utilities/Iterate"
+imports "01Expression/Determinism" "02Stack/StackDeterminism" "02Stack/StackCorrectness"
 begin
 
 

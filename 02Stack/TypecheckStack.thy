@@ -73,16 +73,6 @@ lemma tc_devalue [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v v : t \<Longrig
     ultimately show ?case by simp
   qed simp_all
 
-lemma tc_unstack [simp]: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t' \<Longrightarrow> [],\<Gamma> \<turnstile> e : t \<Longrightarrow> h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> [],\<Gamma> \<turnstile> unstack e s h : t'"
-  proof (induction \<Gamma> s t t' arbitrary: e h rule: typecheck_stack.induct)
-  case (tcs_cons \<Gamma> f t t' s t'')
-    thus ?case by (induction \<Gamma> f t t' rule: typecheck_frame.induct) simp_all
-  qed simp_all
-
-lemma tc_unstack_state [simp]: "\<Sigma> hastype t \<Longrightarrow> \<exists>\<Gamma>. [],\<Gamma> \<turnstile> unstack_state \<Sigma> : t"
-  by (induction \<Sigma> t rule: typecheck_stack_state.induct) 
-     (simp, meson tc_unstack tc_devalue)+
-
 lemma [simp]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> [],\<Gamma> \<turnstile> e : t \<Longrightarrow> extend\<^sub>h h e \<turnstile>\<^sub>h insert_at (length\<^sub>h h) t \<Gamma>"
   proof (induction h \<Gamma> rule: typecheck_heap.induct)
   case (tch_heap \<Gamma> h)
@@ -94,6 +84,9 @@ lemma [simp]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> [],\<Gamma> \<t
 
 lemma [elim]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> length\<^sub>h h = length \<Gamma>"
   by (induction h \<Gamma> rule: typecheck_heap.induct) simp_all
+
+lemma [elim]: "empty\<^sub>h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> \<Gamma> = []"
+  by (induction "empty\<^sub>h :: expr heap" \<Gamma> rule: typecheck_heap.induct) simp_all
 
 lemma tc_frame_weaken [simp]: "\<Gamma> \<turnstile>\<^sub>s f : t \<rightarrow> t' \<Longrightarrow> insert_at (length \<Gamma>) tt \<Gamma> \<turnstile>\<^sub>s f : t \<rightarrow> t'"
   by (induction \<Gamma> f t t' rule: typecheck_frame.induct) simp_all

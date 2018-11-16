@@ -1,5 +1,5 @@
 theory Kindcheck
-imports Type "../Vector"
+imports Type "../Utilities/Vector"
 begin
 
 inductive kinding :: "kind list \<Rightarrow> type \<Rightarrow> kind \<Rightarrow> bool" (infix "\<turnstile>\<^sub>k _ :" 60) where

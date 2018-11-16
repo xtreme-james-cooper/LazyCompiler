@@ -1,5 +1,5 @@
 theory Expression
-imports Type "../Index"
+imports Type "../Utilities/Index"
 begin
 
 datatype expr = 

@@ -1,5 +1,5 @@
 theory Stack
-imports "../Heap" "../01Expression/Expression"
+imports "../Utilities/Heap" "../01Expression/Expression"
 begin
 
 datatype val = 

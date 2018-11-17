@@ -57,4 +57,13 @@ lemma lookup_less_than [elim]: "lookup x as = Some a \<Longrightarrow> x < lengt
 lemma [elim]: "list_all p as \<Longrightarrow> lookup x as = Some a \<Longrightarrow> p a"
   by (induction x as rule: lookup.induct) simp_all
 
+lemma [simp]: "x < length as \<Longrightarrow> lookup x (as @ bs) = lookup x as"
+  by (induction x as rule: lookup.induct) simp_all
+
+lemma [simp]: "lookup (length as + x) (as @ bs) = lookup x bs"
+  by (induction "length as + x" as rule: lookup.induct) simp_all
+
+lemma [simp]: "x \<le> length as \<Longrightarrow> insert_at x a (as @ bs) = insert_at x a as @ bs"
+  by (induction x a as rule: insert_at.induct) (cases bs, simp_all)
+
 end

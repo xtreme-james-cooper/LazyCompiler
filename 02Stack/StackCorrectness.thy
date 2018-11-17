@@ -14,24 +14,49 @@ inductive unstack :: "nat set \<Rightarrow> frame list \<Rightarrow> expr \<Righ
 | us_sunfold [simp]: "unstack xs s (Unfold t e) h xs' s' e' \<Longrightarrow> 
     unstack xs (SUnfold t # s) e h xs' s' e'"
 | us_styapp [simp]: "unstack xs s (TyApp e t) h xs' s' e' \<Longrightarrow> unstack xs (STyApp t # s) e h xs' s' e'"
-| us_let [simp]: "x \<notin> free_vars\<^sub>s\<^sub>s s \<Longrightarrow> x \<notin> xs \<Longrightarrow>
-    unstack (insert x xs) s (Let (lookup\<^sub>h x h) (incr\<^sub>e\<^sub>e x (subst\<^sub>x\<^sub>e x 0 e))) h xs' s' e' \<Longrightarrow> 
-      unstack xs s e h xs' s' e'"
+| us_let [simp]: "x \<notin> free_vars\<^sub>s\<^sub>s s \<Longrightarrow> x \<notin> xs \<Longrightarrow> 
+    x \<notin> \<Union> ((\<lambda>y. free_vars (lookup\<^sub>h y h)) ` {y. y < length\<^sub>h h \<and> y \<noteq> x \<and> y \<notin> xs}) \<Longrightarrow>
+      unstack (insert x xs) s (Let (lookup\<^sub>h x h) (incr\<^sub>e\<^sub>e x (subst\<^sub>x\<^sub>e x 0 e))) h xs' s' e' \<Longrightarrow> 
+        unstack xs s e h xs' s' e'"
 
 inductive unstack_state :: "stack_state \<Rightarrow> expr \<Rightarrow> bool" where
-  uss_eval [simp]: "unstack {} s e h (zero_to (length\<^sub>h h)) [] e' \<Longrightarrow> 
+  uss_eval [simp]: "unstack {} s e h {x. x < length\<^sub>h h} [] e' \<Longrightarrow> 
     unstack_state (StackState (Eval e) s h) e'"
-| uss_return [simp]: "unstack {} s (devalue v) h (zero_to (length\<^sub>h h)) [] e' \<Longrightarrow> 
+| uss_return [simp]: "unstack {} s (devalue v) h {x. x < length\<^sub>h h} [] e' \<Longrightarrow> 
     unstack_state (StackState (Return v) s h) e'"
 
-lemma tc_unstack [elim]: "unstack xs s e h (zero_to (length \<Gamma>)) [] e' \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t' \<Longrightarrow> 
+lemma tc_unstack [elim]: "unstack xs s e h {x. x < length\<^sub>h h} [] e' \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t' \<Longrightarrow> 
   [],\<Gamma> \<turnstile> e : t \<Longrightarrow> h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> free_vars e \<inter> xs = {} \<Longrightarrow> free_vars\<^sub>s\<^sub>s s \<inter> xs = {} \<Longrightarrow> 
-    (\<forall>x \<in> xs. \<forall>x \<in> zero_to (length \<Gamma>). y \<notin> xs \<longrightarrow> x \<notin> free_vars (lookup\<^sub>h y h)) \<Longrightarrow> [],[] \<turnstile> e' : t'"
-  proof (induction xs s e h "(zero_to (length \<Gamma>))" "[] :: frame list" e' arbitrary: \<Gamma> t 
+    (\<forall>x \<in> xs. \<forall>x \<in> {x. x < length\<^sub>h h}. y \<notin> xs \<longrightarrow> x \<notin> free_vars (lookup\<^sub>h y h)) \<Longrightarrow> [],[] \<turnstile> e' : t'"
+  proof (induction xs s e h "{x. x < length\<^sub>h h}" "[] :: frame list" e' arbitrary: \<Gamma> t 
          rule: unstack.induct)
   case (us_nil e h)
-    thus ?case by simp
-  next case us_sref
+    hence L: "length\<^sub>h h = length \<Gamma>" by blast
+    from us_nil have "[],\<Gamma> \<turnstile> e : t'" by blast
+    moreover from us_nil L have "free_vars e \<inter> {x. x < length \<Gamma>} = {}" by simp
+    ultimately show ?case by simp
+  next case (us_sref xs s x h e e')
+    hence "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t' \<Longrightarrow>
+      [] ,\<Gamma> \<turnstile> Var x : t \<Longrightarrow>
+      update\<^sub>h h x e \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow>
+      free_vars (Var x) \<inter> xs = {} \<Longrightarrow>
+      free_vars\<^sub>s\<^sub>s s \<inter> xs = {} \<Longrightarrow>
+      \<forall>xa\<in>xs. \<forall>xa\<in>{xa. xa < length\<^sub>h (update\<^sub>h h x e)}. y \<notin> xs \<longrightarrow> 
+        xa \<notin> free_vars (lookup\<^sub>h y (update\<^sub>h h x e)) \<Longrightarrow> 
+      [] ,[] \<turnstile> e' : t'" by (metis length\<^sub>h_update\<^sub>h)
+    moreover from us_sref have "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t'" by simp
+
+
+    from us_sref have "unstack xs s (Var x) (update\<^sub>h h x e) {x. x < length\<^sub>h h} [] e'" by simp
+    from us_sref have "\<Gamma> \<turnstile>\<^sub>s\<^sub>s SRef x # s : t \<rightarrow> t'" by simp
+    from us_sref have "[] ,\<Gamma> \<turnstile> e : t" by simp
+    from us_sref have "h \<turnstile>\<^sub>h \<Gamma>" by simp
+    from us_sref have "free_vars e \<inter> xs = {}" by simp
+    from us_sref have "free_vars\<^sub>s\<^sub>s (SRef x # s) \<inter> xs = {}" by simp
+    from us_sref have "\<forall>x\<in>xs. \<forall>x\<in>{x. x < length\<^sub>h h}. y \<notin> xs \<longrightarrow> x \<notin> free_vars (lookup\<^sub>h y h)" by simp
+
+
+    have "[],[] \<turnstile> e' : t'" by simp
     thus ?case by simp
   next case us_sapp
     thus ?case by simp

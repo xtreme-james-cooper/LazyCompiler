@@ -25,7 +25,7 @@ lemma [simp]: "length\<^sub>h empty\<^sub>h = 0"
 lemma [simp]: "length\<^sub>h (extend\<^sub>h h a) = Suc (length\<^sub>h h)"
   by (induction h) simp_all
 
-lemma [simp]: "length\<^sub>h (update\<^sub>h h x a) = length\<^sub>h h"
+lemma length\<^sub>h_update\<^sub>h [simp]: "length\<^sub>h (update\<^sub>h h x a) = length\<^sub>h h"
   by (induction h) simp_all
 
 lemma [simp]: "lookup\<^sub>h y (update\<^sub>h h x a) = (if x = y then a else lookup\<^sub>h y h)"

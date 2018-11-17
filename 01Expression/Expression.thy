@@ -128,8 +128,8 @@ primrec head_var :: "expr \<Rightarrow> nat option" where
 definition var_reduce :: "nat set \<Rightarrow> nat set" where
   "var_reduce xs = (\<lambda>x. x - 1) ` (xs - {0})"
 
-primrec free_vars :: "expr \<Rightarrow> nat set" 
-    and free_vars\<^sub>c :: "expr list \<Rightarrow> nat set" where
+fun free_vars :: "expr \<Rightarrow> nat set" 
+and free_vars\<^sub>c :: "expr list \<Rightarrow> nat set" where
   "free_vars (Var x) = {x}"
 | "free_vars (Abs t e) = var_reduce (free_vars e)"
 | "free_vars (App e\<^sub>1 e\<^sub>2) = free_vars e\<^sub>1 \<union> free_vars e\<^sub>2"
@@ -153,5 +153,9 @@ lemma [simp]: "size (subst\<^sub>t\<^sub>e x t e) = size e"
   next case (Case e t cs)
     thus ?case by (induction cs) simp_all
   qed simp_all
+
+lemma [simp]: "free_vars (subst\<^sub>t\<^sub>e x t e) = free_vars e"
+  and [simp]: "free_vars\<^sub>c (map (subst\<^sub>t\<^sub>e x t) c) = free_vars\<^sub>c c"
+  by (induction e and c arbitrary: x t and x t rule: free_vars_free_vars\<^sub>c.induct) simp_all
 
 end

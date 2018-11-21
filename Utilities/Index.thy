@@ -75,6 +75,9 @@ lemma [simp]: "y \<le> x \<Longrightarrow> var_reduce y (insert (Suc x) xs) = in
 lemma [simp]: "y \<le> x \<Longrightarrow> var_reduce y (var_reduce (Suc x) xs) = var_reduce x (var_reduce y xs)"
   by auto
 
+lemma [simp]: "var_reduce x (xs \<union> ys) = var_reduce x xs \<union> var_reduce x ys"
+  by (auto simp add: var_reduce_def)
+
 lemma [simp]: "var_reduce 0 xs \<inter> (op +) y ` ys = {} \<Longrightarrow> xs \<inter> (op +) (Suc y) ` ys = {}"
   by (auto simp add: var_reduce_def)
 

@@ -5,7 +5,7 @@ begin
 inductive unstack :: "nat set \<Rightarrow> frame list \<Rightarrow> expr \<Rightarrow> expr heap \<Rightarrow> nat set \<Rightarrow> frame list \<Rightarrow> expr \<Rightarrow> 
     bool" where
   us_nil [simp]: "unstack xs [] e h xs [] e"
-| us_sref [simp]: "unstack xs s (Var x) (update\<^sub>h h x e) xs' s' e' \<Longrightarrow> 
+| us_sref [simp]: "x \<notin> free_vars e \<Longrightarrow> unstack xs s (Var x) (update\<^sub>h h x e) xs' s' e' \<Longrightarrow> 
     unstack xs (SRef x # s) e h xs' s' e'"
 | us_sapp [simp]: "unstack xs s (App e e\<^sub>2) h xs' s' e' \<Longrightarrow> unstack xs (SApp e\<^sub>2 # s) e h xs' s' e'"
 | us_sproj [simp]: "unstack xs s (Proj e l) h xs' s' e' \<Longrightarrow> unstack xs (SProj l # s) e h xs' s' e'"

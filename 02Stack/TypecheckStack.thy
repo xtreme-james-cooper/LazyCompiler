@@ -56,14 +56,6 @@ inductive typecheck_stack_state :: "stack_state \<Rightarrow> type \<Rightarrow>
 inductive_cases [elim]: "StackState (Eval e) s h hastype t"
 inductive_cases [elim]: "StackState (Return v) s h hastype t"
 
-lemma [simp]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> lookup x \<Gamma> = Some t \<Longrightarrow> [],\<Gamma> \<turnstile> e : t \<Longrightarrow> update\<^sub>h h x e \<turnstile>\<^sub>h \<Gamma>"
-  proof (induction h \<Gamma> rule: typecheck_heap.induct)
-  case (tch_heap \<Gamma> h)
-    hence "\<And>i t. lookup i \<Gamma> = Some t \<Longrightarrow> [],\<Gamma> \<turnstile> lookup\<^sub>h i (update\<^sub>h h x e) : t" by auto
-    moreover from tch_heap have "length\<^sub>h (update\<^sub>h h x e) = length \<Gamma>" by simp
-    ultimately show ?case by (metis typecheck_heap.tch_heap)
-  qed
-
 lemma tc_devalue [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v v : t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> devalue v : t"
   proof (induction \<Delta> \<Gamma> v t rule: typecheck_value.inducts)
   case (tc_vinj x \<Gamma> t l ts \<Delta>)
@@ -72,6 +64,14 @@ lemma tc_devalue [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v v : t \<Longrig
     moreover from tc_vinj have "\<forall>tt \<in> set ts. \<Delta> \<turnstile>\<^sub>k tt : Star" by simp
     ultimately show ?case by simp
   qed simp_all
+
+lemma [simp]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> lookup x \<Gamma> = Some t \<Longrightarrow> [],\<Gamma> \<turnstile> e : t \<Longrightarrow> update\<^sub>h h x e \<turnstile>\<^sub>h \<Gamma>"
+  proof (induction h \<Gamma> rule: typecheck_heap.induct)
+  case (tch_heap \<Gamma> h)
+    hence "\<And>i t. lookup i \<Gamma> = Some t \<Longrightarrow> [],\<Gamma> \<turnstile> lookup\<^sub>h i (update\<^sub>h h x e) : t" by auto
+    moreover from tch_heap have "length\<^sub>h (update\<^sub>h h x e) = length \<Gamma>" by simp
+    ultimately show ?case by (metis typecheck_heap.tch_heap)
+  qed
 
 lemma [simp]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> [],\<Gamma> \<turnstile> e : t \<Longrightarrow> extend\<^sub>h h e \<turnstile>\<^sub>h insert_at (length\<^sub>h h) t \<Gamma>"
   proof (induction h \<Gamma> rule: typecheck_heap.induct)

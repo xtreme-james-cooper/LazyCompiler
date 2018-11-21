@@ -125,15 +125,12 @@ primrec head_var :: "expr \<Rightarrow> nat option" where
 | "head_var (TyApp e t) = head_var e"
 | "head_var (TyLet t e) = None"
 
-definition var_reduce :: "nat set \<Rightarrow> nat set" where
-  "var_reduce xs = (\<lambda>x. x - 1) ` (xs - {0})"
-
 fun free_vars :: "expr \<Rightarrow> nat set" 
 and free_vars\<^sub>c :: "expr list \<Rightarrow> nat set" where
   "free_vars (Var x) = {x}"
-| "free_vars (Abs t e) = var_reduce (free_vars e)"
+| "free_vars (Abs t e) = var_reduce 0 (free_vars e)"
 | "free_vars (App e\<^sub>1 e\<^sub>2) = free_vars e\<^sub>1 \<union> free_vars e\<^sub>2"
-| "free_vars (Let e\<^sub>1 e\<^sub>2) = free_vars e\<^sub>1 \<union> var_reduce (free_vars e\<^sub>2)"
+| "free_vars (Let e\<^sub>1 e\<^sub>2) = free_vars e\<^sub>1 \<union> var_reduce 0 (free_vars e\<^sub>2)"
 | "free_vars (Rec xs) = set xs"
 | "free_vars (Proj e l) = free_vars e"
 | "free_vars (Inj l ts x) = {x}"
@@ -144,7 +141,7 @@ and free_vars\<^sub>c :: "expr list \<Rightarrow> nat set" where
 | "free_vars (TyApp e t) = free_vars e"
 | "free_vars (TyLet t e) = free_vars e"
 | "free_vars\<^sub>c [] = {}"
-| "free_vars\<^sub>c (c # cs) = var_reduce (free_vars c) \<union> free_vars\<^sub>c cs"
+| "free_vars\<^sub>c (c # cs) = var_reduce 0 (free_vars c) \<union> free_vars\<^sub>c cs"
 
 lemma [simp]: "size (subst\<^sub>t\<^sub>e x t e) = size e"
   proof (induction e arbitrary: x t)
@@ -157,5 +154,18 @@ lemma [simp]: "size (subst\<^sub>t\<^sub>e x t e) = size e"
 lemma [simp]: "free_vars (subst\<^sub>t\<^sub>e x t e) = free_vars e"
   and [simp]: "free_vars\<^sub>c (map (subst\<^sub>t\<^sub>e x t) c) = free_vars\<^sub>c c"
   by (induction e and c arbitrary: x t and x t rule: free_vars_free_vars\<^sub>c.induct) simp_all
+
+lemma [simp]: "free_vars (subst\<^sub>x\<^sub>e x y e) = 
+    var_reduce x (free_vars e) \<union> (if x \<in> free_vars e then {y} else {})"
+  and [simp]: "free_vars\<^sub>c (map (subst\<^sub>x\<^sub>e (Suc x) (Suc y)) c) = 
+    var_reduce x (free_vars\<^sub>c c) \<union> (if x \<in> free_vars\<^sub>c c then {y} else {})"
+  proof (induction e and c arbitrary: x y and x y rule: free_vars_free_vars\<^sub>c.induct)
+  case 5
+    thus ?case by (auto simp add: var_reduce_def)
+  qed auto
+
+lemma [simp]: "free_vars (incr\<^sub>e\<^sub>e x e) = incr x ` free_vars e"
+  and [simp]: "free_vars\<^sub>c (map (incr\<^sub>e\<^sub>e (Suc x)) c) = incr x ` free_vars\<^sub>c c"
+  by (induction e and c arbitrary: x and x rule: free_vars_free_vars\<^sub>c.induct) auto
 
 end

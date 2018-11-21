@@ -284,24 +284,6 @@ lemma tc_freevars_xs: "\<Delta> ,\<Gamma>'@\<Gamma> \<turnstile>\<^sub>x\<^sub>s
     thus ?case using tc_free_var by force
   qed simp_all
 
-lemma [simp]: "var_reduce xs \<inter> (op +) n ` ys = {} \<Longrightarrow> xs \<inter> (op +) (Suc n) ` ys = {}"
-  proof -
-    assume R: "var_reduce xs \<inter> (op +) n ` ys = {}"
-    have "\<And>x. x \<in> xs \<Longrightarrow> x \<notin> (op +) (Suc n) ` ys" 
-      proof 
-        fix x
-        assume XS: "x \<in> xs"
-        assume YS: "x \<in> (op +) (Suc n) ` ys"
-        thus False 
-          proof (cases x)
-          case (Suc x')
-            with XS have "x' \<in> (\<lambda>x. x - 1) ` (xs - {0})" by force
-            with R YS Suc show False by (auto simp add: var_reduce_def)
-          qed auto
-      qed
-    thus "xs \<inter> (op +) (Suc n) ` ys = {}" by auto
-  qed
-
 lemma tc_freevars: "\<Delta>,\<Gamma>'@\<Gamma> \<turnstile> e : t \<Longrightarrow> 
     free_vars e \<inter> (\<lambda>x. length \<Gamma>' + x) ` {x. x < length \<Gamma>} = {} \<Longrightarrow> \<Delta>,\<Gamma>' \<turnstile> e : t"
   and "\<Delta>,\<Gamma>'@\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> free_vars\<^sub>c cs \<inter> (\<lambda>x. length \<Gamma>' + x) ` {x. x < length \<Gamma>} = {} \<Longrightarrow> 
@@ -311,7 +293,8 @@ lemma tc_freevars: "\<Delta>,\<Gamma>'@\<Gamma> \<turnstile> e : t \<Longrightar
   case tc_var
     thus ?case using tc_free_var by fastforce
   next case (tc_let \<Delta> e\<^sub>1 t\<^sub>1 e\<^sub>2 t\<^sub>2)
-    moreover hence "var_reduce (free_vars e\<^sub>2) \<inter> op + (length \<Gamma>') ` {x. x < length \<Gamma>} = {}" by auto
+    moreover hence "var_reduce 0 (free_vars e\<^sub>2) \<inter> (op +) (length \<Gamma>') ` {x. x < length \<Gamma>} = {}" 
+      by auto
     ultimately have "\<Delta>,insert_at 0 t\<^sub>1 \<Gamma>' \<turnstile> e\<^sub>2 : t\<^sub>2" by simp
     moreover from tc_let have "\<Delta>,\<Gamma>' \<turnstile> e\<^sub>1 : t\<^sub>1" by fastforce
     ultimately show ?case by simp
@@ -322,7 +305,8 @@ lemma tc_freevars: "\<Delta>,\<Gamma>'@\<Gamma> \<turnstile> e : t \<Longrightar
   next case tc_fold
     thus ?case using tc_free_var by fastforce
   next case (tcc_cons \<Delta> t' e t cs ts)
-    moreover hence "var_reduce (free_vars e) \<inter> op + (length \<Gamma>') ` {x. x < length \<Gamma>} = {}" by auto
+    moreover hence "var_reduce 0 (free_vars e) \<inter> (op +) (length \<Gamma>') ` {x. x < length \<Gamma>} = {}" 
+      by auto
     ultimately have "\<Delta>,insert_at 0 t' \<Gamma>' \<turnstile> e : t" by simp
     moreover from tcc_cons have "\<Delta>,\<Gamma>' \<turnstile>\<^sub>c cs : ts \<rightarrow> t" by fastforce
     ultimately show ?case by simp

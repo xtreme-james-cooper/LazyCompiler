@@ -27,8 +27,8 @@ inductive unstack_state :: "stack_state \<Rightarrow> expr \<Rightarrow> bool" w
 
 lemma tc_unstack [elim]: "unstack xs s e h {x. x < length\<^sub>h h} [] e' \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t' \<Longrightarrow> 
   [],\<Gamma> \<turnstile> e : t \<Longrightarrow> h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> free_vars e \<inter> xs = {} \<Longrightarrow> free_vars\<^sub>s\<^sub>s s \<inter> xs = {} \<Longrightarrow> 
-    (\<forall>x \<in> xs. \<forall>x \<in> {x. x < length\<^sub>h h}. y \<notin> xs \<longrightarrow> x \<notin> free_vars (lookup\<^sub>h y h)) \<Longrightarrow> [],[] \<turnstile> e' : t'"
-  proof (induction xs s e h "{x. x < length\<^sub>h h}" "[] :: frame list" e' arbitrary: \<Gamma> t 
+    (\<forall>x \<in> xs. \<forall>y \<in> {x. x < length\<^sub>h h}. y \<notin> xs \<longrightarrow> x \<notin> free_vars (lookup\<^sub>h y h)) \<Longrightarrow> [],[] \<turnstile> e' : t'"
+  proof (induction xs s e h "{x. x < length\<^sub>h h}" "[] :: frame list" e' arbitrary: t
          rule: unstack.induct)
   case (us_nil e h)
     hence L: "length\<^sub>h h = length \<Gamma>" by blast
@@ -36,31 +36,15 @@ lemma tc_unstack [elim]: "unstack xs s e h {x. x < length\<^sub>h h} [] e' \<Lon
     moreover from us_nil L have "free_vars e \<inter> {x. x < length \<Gamma>} = {}" by simp
     ultimately show ?case by simp
   next case (us_sref xs s x h e e')
-    hence "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t' \<Longrightarrow>
-      [],\<Gamma> \<turnstile> Var x : t \<Longrightarrow>
-      update\<^sub>h h x e \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow>
-      free_vars (Var x) \<inter> xs = {} \<Longrightarrow>
-      free_vars\<^sub>s\<^sub>s s \<inter> xs = {} \<Longrightarrow>
-      \<forall>xa\<in>xs. \<forall>xa\<in>{xa. xa < length\<^sub>h (update\<^sub>h h x e)}. y \<notin> xs \<longrightarrow> 
-        xa \<notin> free_vars (lookup\<^sub>h y (update\<^sub>h h x e)) \<Longrightarrow> 
-      [] ,[] \<turnstile> e' : t'" by (metis length\<^sub>h_update\<^sub>h)
-    
-    from us_sref have "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t'" using tcs_cons by blast
-    moreover from us_sref have "[],\<Gamma> \<turnstile> Var x : t" using tcs_cons tc_var by blast
-    moreover from us_sref have "update\<^sub>h h x e \<turnstile>\<^sub>h \<Gamma>" by simp
-
-
-    from us_sref have "unstack xs s (Var x) (update\<^sub>h h x e) {x. x < length\<^sub>h h} [] e'" by simp
-    from us_sref have "\<Gamma> \<turnstile>\<^sub>s\<^sub>s SRef x # s : t \<rightarrow> t'" by simp
-    from us_sref have "[] ,\<Gamma> \<turnstile> e : t" by simp
-    from us_sref have "h \<turnstile>\<^sub>h \<Gamma>" by simp
-    from us_sref have "free_vars e \<inter> xs = {}" by simp
-    from us_sref have "free_vars\<^sub>s\<^sub>s (SRef x # s) \<inter> xs = {}" by simp
-    from us_sref have "\<forall>x\<in>xs. \<forall>x\<in>{x. x < length\<^sub>h h}. y \<notin> xs \<longrightarrow> x \<notin> free_vars (lookup\<^sub>h y h)" by simp
-
-
-    have "[],[] \<turnstile> e' : t'" by simp
-    thus ?case by simp
+    moreover hence "{x. x < length\<^sub>h h} = {xa. xa < length\<^sub>h (update\<^sub>h h x e)}"
+      by (metis length\<^sub>h_update\<^sub>h)
+    moreover from us_sref(3) have "[],\<Gamma> \<turnstile> Var x : t" by fastforce
+    moreover from us_sref(3, 4, 5) have "update\<^sub>h h x e \<turnstile>\<^sub>h \<Gamma>" by fastforce
+    moreover from us_sref(7) have "free_vars (Var x) \<inter> xs = {}" by fastforce
+    moreover from us_sref(7) have "free_vars\<^sub>s\<^sub>s s \<inter> xs = {}" by fastforce
+    moreover from us_sref(6, 8) have "\<forall>x' \<in> xs. \<forall>y \<in> {z. z < length\<^sub>h (update\<^sub>h h x e)}. y \<notin> xs \<longrightarrow> 
+      x' \<notin> free_vars (lookup\<^sub>h y (update\<^sub>h h x e))" by auto
+    ultimately show ?case by blast
   next case us_sapp
     thus ?case by simp
   next case us_sproj
@@ -72,11 +56,25 @@ lemma tc_unstack [elim]: "unstack xs s e h {x. x < length\<^sub>h h} [] e' \<Lon
   next case us_styapp
     thus ?case by simp
   next case (us_let x s xs h e e')
+    from us_let(1) have "x \<notin> free_vars\<^sub>s\<^sub>s s" by simp
+    from us_let(2) have "x \<notin> xs" by simp
+    from us_let(3) have "x \<notin> \<Union>((\<lambda>y. free_vars (lookup\<^sub>h y h)) ` {y. y < length\<^sub>h h \<and> y \<noteq> x \<and> y \<notin> xs})" by simp
+    from us_let(4) have "unstack (insert x xs) s (expr.Let (lookup\<^sub>h x h) (incr\<^sub>e\<^sub>e x (subst\<^sub>x\<^sub>e x 0 e))) h {x. x < length\<^sub>h h} [] e'" by simp
+    from us_let(6) have "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t'" by simp
+    from us_let(7) have "[] ,\<Gamma> \<turnstile> e : t" by simp
+    from us_let(8) have "h \<turnstile>\<^sub>h \<Gamma>" by simp
+    from us_let(9) have "free_vars e \<inter> xs = {}" by simp
+    from us_let(10) have "free_vars\<^sub>s\<^sub>s s \<inter> xs = {}" by simp                 
+    from us_let(11) have "\<forall>x\<in>xs. \<forall>y\<in>{x. x < length\<^sub>h h}. y \<notin> xs \<longrightarrow> x \<notin> free_vars (lookup\<^sub>h y h)" by simp
 
 
+    have A: "[],\<Gamma> \<turnstile> Let (lookup\<^sub>h x h) (incr\<^sub>e\<^sub>e x (subst\<^sub>x\<^sub>e x 0 e)) : t" by simp
 
-    have "[],[] \<turnstile> e' : t'" by simp
-    thus ?case by simp
+
+    have B: "free_vars (Let (lookup\<^sub>h x h) (incr\<^sub>e\<^sub>e x (subst\<^sub>x\<^sub>e x 0 e))) \<inter> insert x xs = {}" by simp
+    from us_let have "\<forall>xa\<in>insert x xs. \<forall>y\<in>{x. x < length\<^sub>h h}. y \<notin> insert x xs \<longrightarrow> 
+      xa \<notin> free_vars (lookup\<^sub>h y h)" by auto
+    with us_let A B show ?case by blast
   qed
 
 lemma tc_unstack_state [elim]: "unstack_state \<Sigma> e \<Longrightarrow> \<Sigma> hastype t \<Longrightarrow> [],[] \<turnstile> e : t"

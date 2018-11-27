@@ -72,7 +72,7 @@ theorem determinism [elim]: "e \<leadsto> e' \<Longrightarrow> e \<leadsto> e'' 
         hence False by auto
         thus ?case by simp
       qed simp_all
-  next case (ev_proj2 l fs e)
+  next case (ev_proj2 fs l e)
     with ev_proj2(2) show ?case
       proof (induction "Proj (Rec fs) l" e'' rule: evaluate.induct)
       case ev_proj1
@@ -96,7 +96,7 @@ theorem determinism [elim]: "e \<leadsto> e' \<Longrightarrow> e \<leadsto> e'' 
         hence False by auto
         thus ?case by simp
       qed simp_all
-  next case (ev_case2 l cs e' ts e t)
+  next case (ev_case2 cs l e' ts e t)
     with ev_case2(2) show ?case
       proof (induction "Case (Inj l ts e) t cs" e'' rule: evaluate.induct)
       case ev_case1

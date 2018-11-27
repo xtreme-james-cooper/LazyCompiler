@@ -3,7 +3,7 @@ imports TypecheckStack
 begin
 
 inductive evaluate :: "stack_state \<Rightarrow> stack_state \<Rightarrow> bool" (infix "\<leadsto>\<^sub>s" 60) where
-  ev_var [simp]: "StackState (Eval (Var x)) s h \<leadsto>\<^sub>s StackState (Eval (lookup\<^sub>h x h)) (SRef x # s) h"
+  ev_var [simp]: "StackState (Eval (Var x)) s h \<leadsto>\<^sub>s StackState (Eval (lookup\<^sub>h h x)) (SRef x # s) h"
 | ev_abs [simp]: "StackState (Eval (Abs t e)) s h \<leadsto>\<^sub>s StackState (Return (VAbs t e)) s h"
 | ev_app [simp]: "StackState (Eval (App e\<^sub>1 e\<^sub>2)) s h \<leadsto>\<^sub>s StackState (Eval e\<^sub>1) (SApp e\<^sub>2 # s) h" 
 | ev_let [simp]: "StackState (Eval (Let e\<^sub>1 e\<^sub>2)) s h \<leadsto>\<^sub>s 
@@ -21,9 +21,9 @@ inductive evaluate :: "stack_state \<Rightarrow> stack_state \<Rightarrow> bool"
     "StackState (Return v) (SRef x # s) h \<leadsto>\<^sub>s StackState (Return v) s (update\<^sub>h h x (devalue v))"
 | ret_app [simp]: "StackState (Return (VAbs t e\<^sub>1)) (SApp e\<^sub>2 # s) h \<leadsto>\<^sub>s 
     StackState (Eval (subst\<^sub>x\<^sub>e 0 (length\<^sub>h h) e\<^sub>1)) s (extend\<^sub>h h e\<^sub>2)"
-| ret_proj [simp]: "lookup l xs = Some x \<Longrightarrow> 
+| ret_proj [simp]: "lookup xs l = Some x \<Longrightarrow> 
     StackState (Return (VRec xs)) (SProj l # s) h \<leadsto>\<^sub>s StackState (Eval (Var x)) s h" 
-| ret_case [simp]: "lookup l cs = Some e \<Longrightarrow> 
+| ret_case [simp]: "lookup cs l = Some e \<Longrightarrow> 
     StackState (Return (VInj l ts x)) (SCase t cs # s) h \<leadsto>\<^sub>s StackState (Eval (subst\<^sub>x\<^sub>e 0 x e)) s h"
 | ret_unfold [simp]: 
     "StackState (Return (VFold t x)) (SUnfold t # s) h \<leadsto>\<^sub>s StackState (Eval (Var x)) s h" 
@@ -50,15 +50,15 @@ lemma vcanonical_inductive [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v v : I
 lemma vcanonical_forall [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v v : Forall k t \<Longrightarrow> \<exists>e. v = VTyAbs k e"
   by (induction \<Gamma> v "Forall k t" rule: typecheck_value.induct) auto
 
-lemma lookup_in_tc [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<exists>x. lookup l xs = Some x"
-  by (induction l xs arbitrary: ts rule: lookup.induct) auto
+lemma lookup_in_tc [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> lookup ts l = Some t \<Longrightarrow> \<exists>x. lookup xs l = Some x"
+  by (induction xs l arbitrary: ts rule: lookup.induct) auto
 
-lemma lookup_in_env [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> lookup l xs = Some x \<Longrightarrow> 
-    lookup x \<Gamma> = Some t"
-  by (induction l xs arbitrary: ts rule: lookup.induct) auto
+lemma lookup_in_env [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> lookup ts l = Some t \<Longrightarrow> lookup xs l = Some x \<Longrightarrow> 
+    lookup \<Gamma> x = Some t"
+  by (induction xs l arbitrary: ts rule: lookup.induct) auto
 
 lemma "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> True"
-  and lookup_in_cs [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> l < length ts \<Longrightarrow> \<exists>e. lookup l cs = Some e"
+  and lookup_in_cs [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> l < length ts \<Longrightarrow> \<exists>e. lookup cs l = Some e"
   proof (induction \<Delta> \<Gamma> e t and \<Delta> \<Gamma> cs ts t arbitrary: and l rule: typecheck_typecheck_cs.inducts)
   case tcc_cons
     thus ?case by (induction l) simp_all
@@ -118,13 +118,13 @@ theorem progress: "\<Sigma> hastype t \<Longrightarrow> is_final \<Sigma> \<or> 
       qed simp_all
   qed
 
-lemma [simp]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> lookup x \<Gamma> = Some t \<Longrightarrow> [],\<Gamma> \<turnstile> lookup\<^sub>h x h : t"
+lemma [simp]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> lookup \<Gamma> x = Some t \<Longrightarrow> [],\<Gamma> \<turnstile> lookup\<^sub>h h x : t"
   by (induction h \<Gamma> rule: typecheck_heap.induct) simp_all
 
 theorem preservation: "\<Sigma> \<leadsto>\<^sub>s \<Sigma>' \<Longrightarrow> \<Sigma> hastype t \<Longrightarrow> \<Sigma>' hastype t"
   proof (induction \<Sigma> \<Sigma>' rule: evaluate.induct)
   case (ev_var x s h)
-    then obtain \<Gamma> tt where "(\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : tt \<rightarrow> t) \<and> (lookup x \<Gamma> = Some tt) \<and> (h \<turnstile>\<^sub>h \<Gamma>)" by blast
+    then obtain \<Gamma> tt where "(\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : tt \<rightarrow> t) \<and> (lookup \<Gamma> x = Some tt) \<and> (h \<turnstile>\<^sub>h \<Gamma>)" by blast
     moreover hence "\<Gamma> \<turnstile>\<^sub>s\<^sub>s SRef x # s : tt \<rightarrow> t" by (metis tc_sref tcs_cons)
     ultimately show ?case by simp
   next case (ev_app e\<^sub>1 e\<^sub>2 s h)
@@ -143,7 +143,7 @@ theorem preservation: "\<Sigma> \<leadsto>\<^sub>s \<Sigma>' \<Longrightarrow> \
     with T X show ?case by simp
   next case (ev_proj e l s h)
     then obtain \<Gamma> tt ts where "(\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : tt \<rightarrow> t) \<and> ([],\<Gamma> \<turnstile> e : Record ts) \<and> 
-      lookup l ts = Some tt \<and> (h \<turnstile>\<^sub>h \<Gamma>)" by blast
+      lookup ts l = Some tt \<and> (h \<turnstile>\<^sub>h \<Gamma>)" by blast
     thus ?case by (metis tc_sproj tcs_cons tc_eval_state)
   next case (ev_case e t' cs s h)
     then obtain \<Gamma> ts where "(\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t' \<rightarrow> t) \<and> ([],\<Gamma> \<turnstile> e : Variant ts) \<and> 
@@ -159,7 +159,7 @@ theorem preservation: "\<Sigma> \<leadsto>\<^sub>s \<Sigma>' \<Longrightarrow> \
       ([] \<turnstile>\<^sub>k tt : k) \<and> (h \<turnstile>\<^sub>h \<Gamma>)" by blast
     thus ?case by (metis tc_eval_state tcs_cons tc_styapp)
   next case (ret_ref v x s h)
-    then obtain \<Gamma> t' where "lookup x \<Gamma> = Some t' \<and> (\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t' \<rightarrow> t) \<and> ([],\<Gamma> \<turnstile>\<^sub>v v : t') \<and> 
+    then obtain \<Gamma> t' where "lookup \<Gamma> x = Some t' \<and> (\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t' \<rightarrow> t) \<and> ([],\<Gamma> \<turnstile>\<^sub>v v : t') \<and> 
       (h \<turnstile>\<^sub>h \<Gamma>)" by blast
     moreover hence "update\<^sub>h h x (devalue v) \<turnstile>\<^sub>h \<Gamma>" by simp
     ultimately show ?case by (metis tc_return_state)
@@ -172,13 +172,13 @@ theorem preservation: "\<Sigma> \<leadsto>\<^sub>s \<Sigma>' \<Longrightarrow> \
       by (metis tc_weaken)
     ultimately have "[],insert_at (length\<^sub>h h) t\<^sub>1 \<Gamma> \<turnstile> subst\<^sub>x\<^sub>e 0 (length\<^sub>h h) e\<^sub>1 : t\<^sub>2" by simp
     with T X show ?case by fastforce
-  next case (ret_proj l xs x s h)
-    moreover then obtain \<Gamma> ts t' where "(lookup l ts = Some t') \<and> (\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t' \<rightarrow> t) \<and> 
+  next case (ret_proj xs l x s h)
+    moreover then obtain \<Gamma> ts t' where "(lookup ts l = Some t') \<and> (\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t' \<rightarrow> t) \<and> 
       ([],\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts) \<and> (h \<turnstile>\<^sub>h \<Gamma>)" by blast
     ultimately show ?case by (metis tc_eval_state tc_var lookup_in_env)
-  next case (ret_case l cs e ts x tt s h) 
+  next case (ret_case cs l e ts x tt s h) 
     then obtain \<Gamma> t' where T: "([],\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> tt) \<and> (\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : tt \<rightarrow> t) \<and> 
-      lookup x \<Gamma> = Some t' \<and> lookup l ts = Some t' \<and> (\<forall>tt \<in> set ts. [] \<turnstile>\<^sub>k tt : Star) \<and> (h \<turnstile>\<^sub>h \<Gamma>)" 
+      lookup \<Gamma> x = Some t' \<and> lookup ts l= Some t' \<and> (\<forall>tt \<in> set ts. [] \<turnstile>\<^sub>k tt : Star) \<and> (h \<turnstile>\<^sub>h \<Gamma>)" 
         by blast
     moreover with ret_case have "[],insert_at 0 t' \<Gamma> \<turnstile> e : tt" by auto
     ultimately have "[],\<Gamma> \<turnstile> subst\<^sub>x\<^sub>e 0 x e : tt" by simp

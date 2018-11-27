@@ -62,6 +62,21 @@ primrec subst\<^sub>x\<^sub>e :: "nat \<Rightarrow> nat \<Rightarrow> expr \<Rig
 | "subst\<^sub>x\<^sub>e x x' (TyApp e t) = TyApp (subst\<^sub>x\<^sub>e x x' e) t"
 | "subst\<^sub>x\<^sub>e x x' (TyLet t e) = TyLet t (subst\<^sub>x\<^sub>e x x' e)"
 
+primrec decr\<^sub>x\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr" where
+  "decr\<^sub>x\<^sub>e x (Var y) = Var (decr x y)"
+| "decr\<^sub>x\<^sub>e x (Abs t e) = Abs t (decr\<^sub>x\<^sub>e (Suc x) e)"
+| "decr\<^sub>x\<^sub>e x (App e\<^sub>1 e\<^sub>2) = App (decr\<^sub>x\<^sub>e x e\<^sub>1) (decr\<^sub>x\<^sub>e x e\<^sub>2)"
+| "decr\<^sub>x\<^sub>e x (Let e\<^sub>1 e\<^sub>2) = Let (decr\<^sub>x\<^sub>e x e\<^sub>1) (decr\<^sub>x\<^sub>e (Suc x) e\<^sub>2)"
+| "decr\<^sub>x\<^sub>e x (Rec ys) = Rec (map (decr x) ys)"
+| "decr\<^sub>x\<^sub>e x (Proj e l) = Proj (decr\<^sub>x\<^sub>e x e) l"
+| "decr\<^sub>x\<^sub>e x (Inj l ts y) = Inj l ts (decr x y)"
+| "decr\<^sub>x\<^sub>e x (Case e t cs) = Case (decr\<^sub>x\<^sub>e x e) t (map (decr\<^sub>x\<^sub>e (Suc x)) cs)"
+| "decr\<^sub>x\<^sub>e x (Fold t y) = Fold t (decr x y)"
+| "decr\<^sub>x\<^sub>e x (Unfold t e) = Unfold t (decr\<^sub>x\<^sub>e x e)"
+| "decr\<^sub>x\<^sub>e x (TyAbs k e) = TyAbs k (decr\<^sub>x\<^sub>e x e)"
+| "decr\<^sub>x\<^sub>e x (TyApp e t) = TyApp (decr\<^sub>x\<^sub>e x e) t"
+| "decr\<^sub>x\<^sub>e x (TyLet t e) = TyLet t (decr\<^sub>x\<^sub>e x e)"
+
 primrec incr\<^sub>e\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr" where
   "incr\<^sub>e\<^sub>e x (Var y) = Var (incr x y)"
 | "incr\<^sub>e\<^sub>e x (Abs t e) = Abs t (incr\<^sub>e\<^sub>e (Suc x) e)"
@@ -167,5 +182,12 @@ lemma [simp]: "free_vars (subst\<^sub>x\<^sub>e x y e) =
 lemma [simp]: "free_vars (incr\<^sub>e\<^sub>e x e) = incr x ` free_vars e"
   and [simp]: "free_vars\<^sub>c (map (incr\<^sub>e\<^sub>e (Suc x)) c) = incr x ` free_vars\<^sub>c c"
   by (induction e and c arbitrary: x and x rule: free_vars_free_vars\<^sub>c.induct) auto
+
+lemma [simp]: "x \<notin> free_vars e \<Longrightarrow> free_vars (decr\<^sub>x\<^sub>e x e) = decr x ` free_vars e"
+  and [simp]: "x \<notin> free_vars\<^sub>c c \<Longrightarrow> free_vars\<^sub>c (map (decr\<^sub>x\<^sub>e (Suc x)) c) = decr x ` free_vars\<^sub>c c"
+  by (induction e and c arbitrary: x and x rule: free_vars_free_vars\<^sub>c.induct) auto
+
+lemma [simp]: "x \<notin> free_vars\<^sub>c cs \<Longrightarrow> c \<in> set cs \<Longrightarrow> Suc x \<notin> free_vars c"
+  by (induction cs) auto
 
 end

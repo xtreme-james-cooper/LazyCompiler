@@ -11,10 +11,10 @@ inductive evaluate :: "expr \<Rightarrow> expr \<Rightarrow> bool" (infix "\<lea
 | ev_let3 [simp]: "is_value e\<^sub>1 \<Longrightarrow> head_var e\<^sub>2 = Some 0 \<Longrightarrow> 
     Let e\<^sub>1 e\<^sub>2 \<leadsto> Let e\<^sub>1 (subst\<^sub>e\<^sub>e 0 (incr\<^sub>e\<^sub>e 0 e\<^sub>1) e\<^sub>2)"
 | ev_proj1 [simp]: "e \<leadsto> e' \<Longrightarrow> Proj e l \<leadsto> Proj e' l"
-| ev_proj2 [simp]: "lookup l fs = Some x \<Longrightarrow> Proj (Rec fs) l \<leadsto> Var x" 
+| ev_proj2 [simp]: "lookup fs l = Some x \<Longrightarrow> Proj (Rec fs) l \<leadsto> Var x" 
 | ev_proj_let [simp]: "is_value e\<^sub>2 \<Longrightarrow> Proj (Let e\<^sub>1 e\<^sub>2) l \<leadsto> Let e\<^sub>1 (Proj e\<^sub>2 l)" 
 | ev_case1 [simp]: "e \<leadsto> e' \<Longrightarrow> Case e t cs \<leadsto> Case e' t cs"
-| ev_case2 [simp]: "lookup l cs = Some e \<Longrightarrow> Case (Inj l ts x) t cs \<leadsto> Let (Var x) e"
+| ev_case2 [simp]: "lookup cs l = Some e \<Longrightarrow> Case (Inj l ts x) t cs \<leadsto> Let (Var x) e"
 | ev_case_let [simp]: "is_value e\<^sub>2 \<Longrightarrow> 
     Case (Let e\<^sub>1 e\<^sub>2) t cs \<leadsto> Let e\<^sub>1 (Case e\<^sub>2 t (map (incr\<^sub>e\<^sub>e (Suc 0)) cs))" 
 | ev_unfold1 [simp]: "e \<leadsto> e' \<Longrightarrow> Unfold t e \<leadsto> Unfold t e'"  
@@ -45,12 +45,12 @@ lemma canonical_forall [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Forall k t \<
     (\<exists>e'. e = TyAbs k e') \<or> (\<exists>e\<^sub>1 e\<^sub>2. e = Let e\<^sub>1 e\<^sub>2 \<and> is_value e\<^sub>2)"
   by (induction \<Gamma> e "Forall k t" rule: typecheck_typecheck_cs.inducts(1)) auto
 
-lemma lookup_in_tc [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s fs : ts \<Longrightarrow> lookup l ts = Some t \<Longrightarrow> \<exists>e. lookup l fs = Some e"
-  by (induction l fs arbitrary: ts rule: lookup.induct) auto
+lemma lookup_in_tc [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s fs : ts \<Longrightarrow> lookup ts l = Some t \<Longrightarrow> \<exists>e. lookup fs l = Some e"
+  by (induction fs l arbitrary: ts rule: lookup.induct) auto
 
 lemma progress': "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> 
   is_value e \<or> (\<exists>e'. e \<leadsto> e') \<or> (\<exists>x < length \<Gamma>. head_var e = Some x)"
-    and "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> l < length ts \<Longrightarrow> \<exists>c. lookup l cs = Some c"
+    and "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> l < length ts \<Longrightarrow> \<exists>c. lookup cs l = Some c"
   proof (induction \<Delta> \<Gamma> e t and \<Delta> \<Gamma> cs ts t arbitrary: and l rule: typecheck_typecheck_cs.inducts)
   case tc_var
     thus ?case by (metis lookup_less_than head_var.simps(1))
@@ -96,10 +96,10 @@ theorem progress: "\<Delta>,[] \<turnstile> e : t \<Longrightarrow> is_value e \
 theorem preservation: "e \<leadsto> e' \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> e' : t"
   proof (induction e e' arbitrary: \<Delta> \<Gamma> t rule: evaluate.induct) 
   case (ev_proj2 l xs x)
-    hence "lookup x \<Gamma> = Some t" by fastforce
+    hence "lookup \<Gamma> x = Some t" by fastforce
     thus ?case by simp
-  next case (ev_case2 l cs e ts x t')
-    then obtain tt where "(lookup x \<Gamma> = Some tt) \<and> lookup l ts = Some tt \<and> 
+  next case (ev_case2 cs l e ts x t')
+    then obtain tt where "(lookup \<Gamma> x = Some tt) \<and> lookup ts l = Some tt \<and> 
       (\<forall>tt \<in> set ts. \<Delta> \<turnstile>\<^sub>k tt : Star) \<and> (\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t') \<and> t' = t" by fastforce
     moreover with ev_case2 have "\<Delta>,insert_at 0 tt \<Gamma> \<turnstile> e : t" by fastforce
     ultimately show ?case by (metis tc_let tc_var)

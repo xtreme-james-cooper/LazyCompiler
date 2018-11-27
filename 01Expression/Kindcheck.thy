@@ -3,7 +3,7 @@ imports Type "../Utilities/Vector"
 begin
 
 inductive kinding :: "kind list \<Rightarrow> type \<Rightarrow> kind \<Rightarrow> bool" (infix "\<turnstile>\<^sub>k _ :" 60) where
-  k_var [simp]: "lookup x \<Delta> = Some k \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k TyVar x : k"
+  k_var [simp]: "lookup \<Delta> x = Some k \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k TyVar x : k"
 | k_arrow [simp]: "\<Delta> \<turnstile>\<^sub>k t\<^sub>1 : Star \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t\<^sub>2 : Star \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Arrow t\<^sub>1 t\<^sub>2 : Star"
 | k_record [simp]: "(\<forall>t \<in> set ts. \<Delta> \<turnstile>\<^sub>k t : Star) \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Record ts : Star"
 | k_variant [simp]: "(\<forall>t \<in> set ts. \<Delta> \<turnstile>\<^sub>k t : Star) \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k Variant ts : Star"

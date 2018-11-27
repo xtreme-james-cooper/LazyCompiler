@@ -40,11 +40,11 @@ theorem determinism [elim]: "\<Sigma> \<leadsto>\<^sub>s \<Sigma>' \<Longrightar
     thus ?case 
       by (induction "StackState (Return (VAbs t e\<^sub>1)) (SApp e\<^sub>2 # s) h" \<Sigma>'' rule: evaluate.induct) 
          simp_all
-  next case (ret_proj l xs x s h)
+  next case (ret_proj xs l x s h)
     with ret_proj(2) show ?case 
       by (induction "StackState (Return (VRec xs)) (SProj l # s) h" \<Sigma>'' rule: evaluate.induct) 
          simp_all
-  next case (ret_case l cs e ts x t s h)
+  next case (ret_case cs l e ts x t s h)
     with ret_case(2) show ?case 
       by (induction "StackState (Return (VInj l ts x)) (SCase t cs # s) h" \<Sigma>'' 
           rule: evaluate.induct) 

@@ -2,8 +2,8 @@ theory StackCorrectness
 imports StackConversion "../01Expression/Evaluate" "../Utilities/Iterate"
 begin
 
-lemma complete': "e \<leadsto> e' \<Longrightarrow> unstack_state \<Sigma> e \<Longrightarrow> \<exists>\<Sigma>'. \<Sigma> \<leadsto>\<^sub>s \<Sigma>' \<and> unstack_state \<Sigma>' e'"
-  proof (induction e e' rule: evaluate.induct) 
+lemma complete': "unstack_state rs \<Sigma> \<leadsto> e' \<Longrightarrow> \<exists>\<Sigma>'. \<Sigma> \<leadsto>\<^sub>s \<Sigma>' \<and> unstack_state rs \<Sigma>' = e'"
+  proof (induction "unstack_state rs \<Sigma>" e' rule: evaluate.induct) 
   case ev_app1
     thus ?case by simp 
   next case ev_app2 

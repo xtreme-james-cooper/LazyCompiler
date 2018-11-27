@@ -11,13 +11,19 @@ definition decr :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
 definition var_reduce :: "nat \<Rightarrow> nat set \<Rightarrow> nat set" where
   "var_reduce x xs = decr x ` (xs - {x})"
 
-lemma [simp]: "lookup y as = Some a \<Longrightarrow> x \<le> length as \<Longrightarrow> 
-    lookup (incr x y) (insert_at x a' as) = Some a"
+lemma [simp]: "lookup as y = Some a \<Longrightarrow> x \<le> length as \<Longrightarrow> 
+    lookup (insert_at x a' as) (incr x y) = Some a"
   by (simp add: incr_def)
 
-lemma [simp]: "lookup y (insert_at x a' as) = Some a \<Longrightarrow> x \<le> length as \<Longrightarrow> 
-    lookup x' as = Some a' \<Longrightarrow> x \<noteq> y \<Longrightarrow> lookup (decr x y) as = Some a"
+lemma [simp]: "lookup (insert_at x a' as) y = Some a \<Longrightarrow> x \<le> length as \<Longrightarrow> x \<noteq> y \<Longrightarrow> 
+    lookup as (decr x y) = Some a"
   by (cases y) (auto simp add: decr_def)
+
+lemma [simp]: "x < length as \<Longrightarrow> lookup (remove as x) y = lookup as (incr x y)"
+  proof (induction as x arbitrary: y rule: remove.induct)
+  case 3
+    thus ?case by (induction y) (simp_all add: incr_def)
+  qed (simp_all add: incr_def)
 
 lemma [simp]: "incr 0 x = Suc x"
   by (simp add: incr_def)
@@ -72,6 +78,9 @@ lemma [simp]: "y \<le> x \<Longrightarrow> var_reduce y (incr (Suc x) ` xs) = in
 lemma [simp]: "y \<le> x \<Longrightarrow> var_reduce y (insert (Suc x) xs) = insert x (var_reduce y xs)"
   by (auto simp add: incr_def split: if_splits)
 
+lemma [simp]: "y \<le> x \<Longrightarrow> Suc x \<notin> xs \<Longrightarrow> var_reduce y (decr (Suc x) ` xs) = decr x ` var_reduce y xs"
+  by (auto simp add: incr_def decr_def split: if_splits)
+
 lemma [simp]: "y \<le> x \<Longrightarrow> var_reduce y (var_reduce (Suc x) xs) = var_reduce x (var_reduce y xs)"
   by auto
 
@@ -80,11 +89,5 @@ lemma [simp]: "var_reduce x (xs \<union> ys) = var_reduce x xs \<union> var_redu
 
 lemma [simp]: "var_reduce 0 xs \<inter> (op +) y ` ys = {} \<Longrightarrow> xs \<inter> (op +) (Suc y) ` ys = {}"
   by (auto simp add: var_reduce_def)
-
-lemma [simp]: "(x::nat) \<ge> y \<Longrightarrow> \<exists>z. x = y + z"
-  proof (induction x arbitrary: y)
-  case Suc
-    thus ?case by (induction y) simp_all
-  qed simp_all
 
 end

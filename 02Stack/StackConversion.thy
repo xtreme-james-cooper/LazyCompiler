@@ -2,9 +2,15 @@ theory StackConversion
 imports EvaluateStack
 begin
 
-primrec invert :: "nat list \<Rightarrow> nat list" where
-  "invert [] = []"
-| "invert (x # xs) = insert_at x 0 (invert xs)"
+function invert' :: "nat \<Rightarrow> nat list \<Rightarrow> nat list" where 
+  "y < length xs \<Longrightarrow> invert' y xs = index_of y xs # invert' (Suc y) xs"
+| "y \<ge> length xs \<Longrightarrow> invert' y xs = []"
+  by auto fastforce
+termination
+  by (relation "measure (\<lambda>(y, xs). length xs - y)") simp_all
+
+definition invert :: "nat list \<Rightarrow> nat list" where
+  "invert xs = invert' 0 xs"
 
 abbreviation unfold_heap :: "expr heap \<Rightarrow> expr \<Rightarrow> nat list \<Rightarrow> expr" where
   "unfold_heap h e rs \<equiv> 
@@ -25,8 +31,8 @@ fun unstack_state :: "nat list list \<Rightarrow> stack_state \<Rightarrow> expr
   "unstack_state rs (StackState (Eval e) s h) = unstack rs s e h"
 | "unstack_state rs (StackState (Return v) s h) = unstack rs s (devalue v) h"
 
-abbreviation map_through :: "'a list \<Rightarrow> nat list \<Rightarrow> 'a list" where
-  "map_through \<Gamma> \<equiv> map (\<lambda>x. the (lookup \<Gamma> x))"
+definition map_through :: "'a list \<Rightarrow> nat list \<Rightarrow> 'a list" where
+  "map_through \<Gamma> xs = map (\<lambda>x. the (lookup \<Gamma> x)) xs"
 
 fun safe_unfold_order' :: "nat list list \<Rightarrow> expr heap \<Rightarrow> frame list \<Rightarrow> bool" where
   "safe_unfold_order' [] h s = True"
@@ -41,12 +47,90 @@ fun safe_unfold_order :: "nat list list \<Rightarrow> expr heap \<Rightarrow> fr
       safe_unfold_order' rss h s)"
 
 lemma [simp]: "lookup \<Gamma> r = Some tt \<Longrightarrow> insert_at 0 tt (map_through \<Gamma> rs) = map_through \<Gamma> (r # rs)" 
-  by (cases "map_through \<Gamma> rs") simp_all
+  by (cases "map_through \<Gamma> rs") (simp_all add: map_through_def)
 
-lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> \<Delta>,map_through \<Gamma> rs \<turnstile> subst\<^sub>x\<^sub>e\<^sub>s (invert rs) e : t"
-  apply (induction rs)
-  apply simp_all
-  by simp
+lemma [simp]: "length (invert' x rs) = length rs - x"
+  by (induction x rs rule: invert'.induct) simp_all
+
+lemma [simp]: "length (invert rs) = length rs"
+  by (simp add: invert_def)
+
+lemma [simp]: "x \<in> set xs \<Longrightarrow> lookup \<Gamma> x = Some a \<Longrightarrow> 
+    lookup (map_through \<Gamma> xs) (index_of x xs) = Some a"
+  by (induction xs) (auto simp add: map_through_def)
+
+lemma [simp]: "lookup \<Gamma> (y + x) = Some t \<Longrightarrow> y + x \<in> set rs \<Longrightarrow> y + x < length rs \<Longrightarrow>
+    lookup (map_through \<Gamma> rs) (the (lookup (invert' y rs) x)) = Some t"
+  proof (induction y rs arbitrary: x rule: invert'.induct)
+  case 1
+    thus ?case by (induction x) simp_all
+  qed simp_all
+
+lemma [simp]: "lookup \<Gamma> x = Some t \<Longrightarrow> x \<in> set rs \<Longrightarrow> x < length rs \<Longrightarrow>
+    lookup (map_through \<Gamma> rs) (the (lookup (invert rs) x)) = Some t"
+  by (simp add: invert_def)
+
+lemma [simp]: "map Suc (invert' y rs) = invert' (Suc y) (0 # map Suc rs)"
+  by (induction y rs rule: invert'.induct) simp_all
+
+lemma [simp]: "extend_var_map (invert rs) = invert (extend_var_map rs)"
+  by (simp add: extend_var_map_def invert_def)
+
+lemma [simp]: "map_through (insert_at 0 t \<Gamma>) (extend_var_map rs) = insert_at 0 t (map_through \<Gamma> rs)"
+  by (cases "map (\<lambda>x. the (lookup \<Gamma> x)) rs") (auto simp add: extend_var_map_def map_through_def)
+
+lemma [simp]: "var_reduce 0 xs \<subseteq> set rs \<Longrightarrow> xs \<subseteq> set (extend_var_map rs)"
+  proof (unfold extend_var_map_def var_reduce_def, rule)
+    fix x
+    assume "decr 0 ` (xs - {0}) \<subseteq> set rs"
+       and "x \<in> xs"
+    thus "x \<in> set (0 # map Suc rs)" by (cases x) auto
+  qed
+
+lemma [simp]: "\<forall>x \<in> var_reduce 0 xs. x < k \<Longrightarrow> \<forall>x \<in> xs. x < Suc k"
+  proof (unfold var_reduce_def, rule)
+    fix x
+    assume "\<forall>x \<in> decr 0 ` (xs - {0}). x < k"
+    hence "\<forall>x \<in> xs - {0}. decr 0 x < k" by simp
+    moreover assume "x \<in> xs"
+    ultimately have "x \<noteq> 0 \<Longrightarrow> decr 0 x < k" by simp
+    thus "x < Suc k" by (cases x) (simp_all add: decr_def)
+  qed
+
+lemma [simp]: "\<forall>x \<in> ys \<union> var_reduce 0 xs. x < k \<Longrightarrow> \<forall>x \<in> xs. x < Suc k"
+  proof -
+    assume "\<forall>x \<in> ys \<union> var_reduce 0 xs. x < k"
+    hence "\<forall>x \<in> var_reduce 0 xs. x < k" by simp
+    thus "\<forall>x \<in> xs. x < Suc k" by simp
+  qed
+
+lemma [simp]: "map_through (map f \<Gamma>) rs = map f (map_through \<Gamma> rs)"
+  apply (auto simp add: map_through_def)
+
+lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> free_vars e \<subseteq> set rs \<Longrightarrow> \<forall>x \<in> free_vars e. x < length rs \<Longrightarrow>
+    \<Delta>,map_through \<Gamma> rs \<turnstile> subst\<^sub>x\<^sub>e\<^sub>s (invert rs) e : t"
+  and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c c : ts \<rightarrow> t \<Longrightarrow> free_vars\<^sub>c c \<subseteq> set rs \<Longrightarrow> \<forall>x \<in> free_vars\<^sub>c c. x < length rs \<Longrightarrow>
+    \<Delta>,map_through \<Gamma> rs \<turnstile>\<^sub>c map (subst\<^sub>x\<^sub>e\<^sub>s (extend_var_map (invert rs))) c : ts \<rightarrow> t"
+  proof (induction \<Delta> \<Gamma> e t arbitrary: rs and rs rule: typecheck_typecheck_cs.inducts)
+  case (tc_abs \<Delta> t\<^sub>1 \<Gamma> e t\<^sub>2)
+    moreover hence "free_vars e \<subseteq> set (extend_var_map rs)" by simp
+    moreover from tc_abs have "\<forall>x\<in>free_vars e. x < length (extend_var_map rs)" by simp
+    ultimately have "\<Delta> ,map_through (insert_at 0 t\<^sub>1 \<Gamma>) (extend_var_map rs) \<turnstile>
+      subst\<^sub>x\<^sub>e\<^sub>s (invert (extend_var_map rs)) e : t\<^sub>2" by blast
+    with tc_abs show ?case by simp
+  next case (tc_let \<Delta> \<Gamma> e\<^sub>1 t\<^sub>1 e\<^sub>2 t\<^sub>2)
+    moreover hence "free_vars e\<^sub>2 \<subseteq> set (extend_var_map rs)" by simp
+    moreover from tc_let have "\<forall>x \<in> free_vars e\<^sub>2. x < length (extend_var_map rs)" by simp
+    ultimately have "\<Delta>,map_through (insert_at 0 t\<^sub>1 \<Gamma>) (extend_var_map rs) \<turnstile> 
+      subst\<^sub>x\<^sub>e\<^sub>s (invert (extend_var_map rs)) e\<^sub>2 : t\<^sub>2 " by blast
+    with tc_let show ?case by fastforce
+  next case tc_rec
+    thus ?case by simp
+  next case tc_tylet
+    thus ?case by simp
+  next case tcc_cons
+    thus ?case by simp
+  qed fastforce+
 
 lemma [simp]: "[],map_through \<Gamma> rs \<turnstile> e : t \<Longrightarrow> distinct rs \<Longrightarrow> 
   \<forall>r \<in> set rs. r < length \<Gamma> \<Longrightarrow> h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> safe_unfold_order' [rs] h [] \<Longrightarrow>

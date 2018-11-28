@@ -62,15 +62,18 @@ primrec subst\<^sub>x\<^sub>e :: "nat \<Rightarrow> nat \<Rightarrow> expr \<Rig
 | "subst\<^sub>x\<^sub>e x x' (TyApp e t) = TyApp (subst\<^sub>x\<^sub>e x x' e) t"
 | "subst\<^sub>x\<^sub>e x x' (TyLet t e) = TyLet t (subst\<^sub>x\<^sub>e x x' e)"
 
+definition extend_var_map :: "nat list \<Rightarrow> nat list" where
+  "extend_var_map xs = 0 # map Suc xs"
+
 primrec subst\<^sub>x\<^sub>e\<^sub>s :: "nat list \<Rightarrow> expr \<Rightarrow> expr" where
   "subst\<^sub>x\<^sub>e\<^sub>s xs (Var y) = Var (the (lookup xs y))"
-| "subst\<^sub>x\<^sub>e\<^sub>s xs (Abs t e) = Abs t (subst\<^sub>x\<^sub>e\<^sub>s (0 # map Suc xs) e)"
+| "subst\<^sub>x\<^sub>e\<^sub>s xs (Abs t e) = Abs t (subst\<^sub>x\<^sub>e\<^sub>s (extend_var_map xs) e)"
 | "subst\<^sub>x\<^sub>e\<^sub>s xs (App e\<^sub>1 e\<^sub>2) = App (subst\<^sub>x\<^sub>e\<^sub>s xs e\<^sub>1) (subst\<^sub>x\<^sub>e\<^sub>s xs e\<^sub>2)"
-| "subst\<^sub>x\<^sub>e\<^sub>s xs (Let e\<^sub>1 e\<^sub>2) = Let (subst\<^sub>x\<^sub>e\<^sub>s xs e\<^sub>1) (subst\<^sub>x\<^sub>e\<^sub>s (0 # map Suc xs) e\<^sub>2)"
+| "subst\<^sub>x\<^sub>e\<^sub>s xs (Let e\<^sub>1 e\<^sub>2) = Let (subst\<^sub>x\<^sub>e\<^sub>s xs e\<^sub>1) (subst\<^sub>x\<^sub>e\<^sub>s (extend_var_map xs) e\<^sub>2)"
 | "subst\<^sub>x\<^sub>e\<^sub>s xs (Rec ys) = Rec (map (\<lambda>y. the (lookup xs y)) ys)"
 | "subst\<^sub>x\<^sub>e\<^sub>s xs (Proj e l) = Proj (subst\<^sub>x\<^sub>e\<^sub>s xs e) l"
 | "subst\<^sub>x\<^sub>e\<^sub>s xs (Inj l ts y) = Inj l ts (the (lookup xs y))"
-| "subst\<^sub>x\<^sub>e\<^sub>s xs (Case e t cs) = Case (subst\<^sub>x\<^sub>e\<^sub>s xs e) t (map (subst\<^sub>x\<^sub>e\<^sub>s (0 # map Suc xs)) cs)"
+| "subst\<^sub>x\<^sub>e\<^sub>s xs (Case e t cs) = Case (subst\<^sub>x\<^sub>e\<^sub>s xs e) t (map (subst\<^sub>x\<^sub>e\<^sub>s (extend_var_map xs)) cs)"
 | "subst\<^sub>x\<^sub>e\<^sub>s xs (Fold t y) = Fold t (the (lookup xs y))"
 | "subst\<^sub>x\<^sub>e\<^sub>s xs (Unfold t e) = Unfold t (subst\<^sub>x\<^sub>e\<^sub>s xs e)"
 | "subst\<^sub>x\<^sub>e\<^sub>s xs (TyAbs k e) = TyAbs k (subst\<^sub>x\<^sub>e\<^sub>s xs e)"
@@ -204,5 +207,8 @@ lemma [simp]: "x \<notin> free_vars e \<Longrightarrow> free_vars (decr\<^sub>x\
 
 lemma [simp]: "x \<notin> free_vars\<^sub>c cs \<Longrightarrow> c \<in> set cs \<Longrightarrow> Suc x \<notin> free_vars c"
   by (induction cs) auto
+
+lemma [simp]: "length (extend_var_map rs) = Suc (length rs)"
+  by (simp add: extend_var_map_def)
 
 end

@@ -62,6 +62,21 @@ primrec subst\<^sub>x\<^sub>e :: "nat \<Rightarrow> nat \<Rightarrow> expr \<Rig
 | "subst\<^sub>x\<^sub>e x x' (TyApp e t) = TyApp (subst\<^sub>x\<^sub>e x x' e) t"
 | "subst\<^sub>x\<^sub>e x x' (TyLet t e) = TyLet t (subst\<^sub>x\<^sub>e x x' e)"
 
+primrec subst\<^sub>x\<^sub>e\<^sub>s :: "nat list \<Rightarrow> expr \<Rightarrow> expr" where
+  "subst\<^sub>x\<^sub>e\<^sub>s xs (Var y) = Var (the (lookup xs y))"
+| "subst\<^sub>x\<^sub>e\<^sub>s xs (Abs t e) = Abs t (subst\<^sub>x\<^sub>e\<^sub>s (0 # map Suc xs) e)"
+| "subst\<^sub>x\<^sub>e\<^sub>s xs (App e\<^sub>1 e\<^sub>2) = App (subst\<^sub>x\<^sub>e\<^sub>s xs e\<^sub>1) (subst\<^sub>x\<^sub>e\<^sub>s xs e\<^sub>2)"
+| "subst\<^sub>x\<^sub>e\<^sub>s xs (Let e\<^sub>1 e\<^sub>2) = Let (subst\<^sub>x\<^sub>e\<^sub>s xs e\<^sub>1) (subst\<^sub>x\<^sub>e\<^sub>s (0 # map Suc xs) e\<^sub>2)"
+| "subst\<^sub>x\<^sub>e\<^sub>s xs (Rec ys) = Rec (map (\<lambda>y. the (lookup xs y)) ys)"
+| "subst\<^sub>x\<^sub>e\<^sub>s xs (Proj e l) = Proj (subst\<^sub>x\<^sub>e\<^sub>s xs e) l"
+| "subst\<^sub>x\<^sub>e\<^sub>s xs (Inj l ts y) = Inj l ts (the (lookup xs y))"
+| "subst\<^sub>x\<^sub>e\<^sub>s xs (Case e t cs) = Case (subst\<^sub>x\<^sub>e\<^sub>s xs e) t (map (subst\<^sub>x\<^sub>e\<^sub>s (0 # map Suc xs)) cs)"
+| "subst\<^sub>x\<^sub>e\<^sub>s xs (Fold t y) = Fold t (the (lookup xs y))"
+| "subst\<^sub>x\<^sub>e\<^sub>s xs (Unfold t e) = Unfold t (subst\<^sub>x\<^sub>e\<^sub>s xs e)"
+| "subst\<^sub>x\<^sub>e\<^sub>s xs (TyAbs k e) = TyAbs k (subst\<^sub>x\<^sub>e\<^sub>s xs e)"
+| "subst\<^sub>x\<^sub>e\<^sub>s xs (TyApp e t) = TyApp (subst\<^sub>x\<^sub>e\<^sub>s xs e) t"
+| "subst\<^sub>x\<^sub>e\<^sub>s xs (TyLet t e) = TyLet t (subst\<^sub>x\<^sub>e\<^sub>s xs e)"
+
 primrec decr\<^sub>x\<^sub>e :: "nat \<Rightarrow> expr \<Rightarrow> expr" where
   "decr\<^sub>x\<^sub>e x (Var y) = Var (decr x y)"
 | "decr\<^sub>x\<^sub>e x (Abs t e) = Abs t (decr\<^sub>x\<^sub>e (Suc x) e)"

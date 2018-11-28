@@ -78,6 +78,9 @@ lemma [simp]: "lookup (map f as) x = map_option f (lookup as x)"
 lemma lookup_less_than [elim]: "lookup as x = Some a \<Longrightarrow> x < length as"
   by (induction as x rule: lookup.induct) simp_all
 
+lemma [simp]: "x < length as \<Longrightarrow> \<exists>a. lookup as x = Some a"
+  by (induction as x rule: lookup.induct) simp_all
+
 lemma [elim]: "list_all p as \<Longrightarrow> lookup as x = Some a \<Longrightarrow> p a"
   by (induction as x rule: lookup.induct) simp_all
 

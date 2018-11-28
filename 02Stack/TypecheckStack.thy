@@ -41,11 +41,8 @@ inductive typecheck_stack :: "type list \<Rightarrow> frame list \<Rightarrow> t
 inductive_cases [elim]: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s [] : t \<rightarrow> t'"
 inductive_cases [elim]: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s f # s : t \<rightarrow> t'"
 
-inductive typecheck_heap :: "expr heap \<Rightarrow> type list \<Rightarrow> bool" (infix "\<turnstile>\<^sub>h" 60) where
-  tch_heap [simp]: "(\<And>i t. lookup \<Gamma> i = Some t \<Longrightarrow> [],\<Gamma> \<turnstile> lookup\<^sub>h h i : t) \<Longrightarrow> 
-    length\<^sub>h h = length \<Gamma> \<Longrightarrow> h \<turnstile>\<^sub>h \<Gamma>"
-
-inductive_cases [elim]: "h \<turnstile>\<^sub>h \<Gamma>"
+definition typecheck_heap :: "expr heap \<Rightarrow> type list \<Rightarrow> bool" (infix "\<turnstile>\<^sub>h" 60) where
+  "h \<turnstile>\<^sub>h \<Gamma> = (length\<^sub>h h = length \<Gamma> \<and> (\<forall>i t. lookup \<Gamma> i = Some t \<longrightarrow> [],\<Gamma> \<turnstile> lookup\<^sub>h h i : t))"
 
 inductive typecheck_stack_state :: "stack_state \<Rightarrow> type \<Rightarrow> bool" (infix "hastype" 60) where
   tc_eval_state [simp]: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t' \<Longrightarrow> [],\<Gamma> \<turnstile> e : t \<Longrightarrow> h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> 
@@ -66,27 +63,16 @@ lemma tc_devalue [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>v v : t \<Longrig
   qed simp_all
 
 lemma [simp]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> lookup \<Gamma> x = Some t \<Longrightarrow> [],\<Gamma> \<turnstile> e : t \<Longrightarrow> update\<^sub>h h x e \<turnstile>\<^sub>h \<Gamma>"
-  proof (induction h \<Gamma> rule: typecheck_heap.induct)
-  case (tch_heap \<Gamma> h)
-    hence "\<And>i t. lookup \<Gamma> i = Some t \<Longrightarrow> [],\<Gamma> \<turnstile> lookup\<^sub>h (update\<^sub>h h x e) i : t" by auto
-    moreover from tch_heap have "length\<^sub>h (update\<^sub>h h x e) = length \<Gamma>" by simp
-    ultimately show ?case by (metis typecheck_heap.tch_heap)
-  qed
+  by (simp add: typecheck_heap_def)
 
 lemma [simp]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> [],\<Gamma> \<turnstile> e : t \<Longrightarrow> extend\<^sub>h h e \<turnstile>\<^sub>h insert_at (length\<^sub>h h) t \<Gamma>"
-  proof (induction h \<Gamma> rule: typecheck_heap.induct)
-  case (tch_heap \<Gamma> h)
-    moreover hence "\<And>i tt. lookup (insert_at (length\<^sub>h h) t \<Gamma>) i = Some tt \<Longrightarrow> 
-        [],insert_at (length\<^sub>h h) t \<Gamma> \<turnstile> lookup\<^sub>h (extend\<^sub>h h e) i : tt"
-      using lookup_less_than by fastforce
-    ultimately show ?case by simp
-  qed
+  using lookup_less_than by (unfold typecheck_heap_def) fastforce
 
 lemma [elim]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> length\<^sub>h h = length \<Gamma>"
-  by (induction h \<Gamma> rule: typecheck_heap.induct) simp_all
+  by (simp add: typecheck_heap_def)
 
 lemma [elim]: "empty\<^sub>h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> \<Gamma> = []"
-  by (induction "empty\<^sub>h :: expr heap" \<Gamma> rule: typecheck_heap.induct) simp_all
+  by (simp add: typecheck_heap_def)
 
 lemma tc_frame_weaken [simp]: "\<Gamma> \<turnstile>\<^sub>s f : t \<rightarrow> t' \<Longrightarrow> insert_at (length \<Gamma>) tt \<Gamma> \<turnstile>\<^sub>s f : t \<rightarrow> t'"
   by (induction \<Gamma> f t t' rule: typecheck_frame.induct) simp_all
@@ -99,21 +85,7 @@ lemma tc_stack_weaken [simp]: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rig
     ultimately show ?case by simp
   qed simp_all
 
-lemma [simp]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> r < length \<Gamma> \<Longrightarrow> \<forall>i < length\<^sub>h h. r \<notin> free_vars (lookup\<^sub>h h i) \<Longrightarrow> 
-    map\<^sub>h (decr\<^sub>x\<^sub>e r) (remove\<^sub>h h r) \<turnstile>\<^sub>h remove \<Gamma> r"
-  proof (induction h \<Gamma> rule: typecheck_heap.induct) 
-  case (tch_heap \<Gamma> h)
-    have "\<And>i t. lookup (remove \<Gamma> r) i = Some t \<Longrightarrow> 
-        [],remove \<Gamma> r \<turnstile> lookup\<^sub>h (map\<^sub>h (decr\<^sub>x\<^sub>e r) (remove\<^sub>h h r)) i : t"
-      proof -
-        fix i t
-        assume I: "lookup (remove \<Gamma> r) i = Some t" 
-        with tch_heap have "incr r i < length\<^sub>h h" by auto
-        with tch_heap I show "[],remove \<Gamma> r \<turnstile> lookup\<^sub>h (map\<^sub>h (decr\<^sub>x\<^sub>e r) (remove\<^sub>h h r)) i : t" by simp
-      qed
-    moreover from tch_heap have "length\<^sub>h (map\<^sub>h (decr\<^sub>x\<^sub>e r) (remove\<^sub>h h r)) = length (remove \<Gamma> r)" 
-      by simp
-    ultimately show ?case by simp
-  qed
+lemma [simp]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> lookup \<Gamma> x = Some t \<Longrightarrow> [],\<Gamma> \<turnstile> lookup\<^sub>h h x : t"
+  by (simp add: typecheck_heap_def)
 
 end

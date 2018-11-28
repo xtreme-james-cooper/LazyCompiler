@@ -118,9 +118,6 @@ theorem progress: "\<Sigma> hastype t \<Longrightarrow> is_final \<Sigma> \<or> 
       qed simp_all
   qed
 
-lemma [simp]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> lookup \<Gamma> x = Some t \<Longrightarrow> [],\<Gamma> \<turnstile> lookup\<^sub>h h x : t"
-  by (induction h \<Gamma> rule: typecheck_heap.induct) simp_all
-
 theorem preservation: "\<Sigma> \<leadsto>\<^sub>s \<Sigma>' \<Longrightarrow> \<Sigma> hastype t \<Longrightarrow> \<Sigma>' hastype t"
   proof (induction \<Sigma> \<Sigma>' rule: evaluate.induct)
   case (ev_var x s h)
@@ -134,12 +131,12 @@ theorem preservation: "\<Sigma> \<leadsto>\<^sub>s \<Sigma>' \<Longrightarrow> \
   next case (ev_let e\<^sub>1 e\<^sub>2 s h)
     then obtain \<Gamma> t\<^sub>1 t\<^sub>2 where T: "(\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t\<^sub>2 \<rightarrow> t) \<and> ([],\<Gamma> \<turnstile> e\<^sub>1 : t\<^sub>1) \<and> 
       ([],insert_at 0 t\<^sub>1 \<Gamma> \<turnstile> e\<^sub>2 : t\<^sub>2) \<and> (h \<turnstile>\<^sub>h \<Gamma>)" by blast
-    hence X: "insert_at (length\<^sub>h h) t\<^sub>1 \<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t\<^sub>2 \<rightarrow> t" by fastforce 
     from T have "[],insert_at (length (insert_at 0 t\<^sub>1 \<Gamma>)) t\<^sub>1 (insert_at 0 t\<^sub>1 \<Gamma>) \<turnstile> e\<^sub>2 : t\<^sub>2" 
       by (metis tc_weaken)
     hence "[],insert_at 0 t\<^sub>1 (insert_at (length \<Gamma>) t\<^sub>1 \<Gamma>) \<turnstile> e\<^sub>2 : t\<^sub>2" by simp
-    moreover from T have "length\<^sub>h h = length \<Gamma>" by blast
-    ultimately have "[],insert_at (length\<^sub>h h) t\<^sub>1 \<Gamma> \<turnstile> subst\<^sub>x\<^sub>e 0 (length\<^sub>h h) e\<^sub>2 : t\<^sub>2" by simp
+    moreover from T have L: "length\<^sub>h h = length \<Gamma>" by fastforce
+    ultimately have X: "[],insert_at (length\<^sub>h h) t\<^sub>1 \<Gamma> \<turnstile> subst\<^sub>x\<^sub>e 0 (length\<^sub>h h) e\<^sub>2 : t\<^sub>2" by simp
+    from T L have "insert_at (length\<^sub>h h) t\<^sub>1 \<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t\<^sub>2 \<rightarrow> t" by fastforce 
     with T X show ?case by simp
   next case (ev_proj e l s h)
     then obtain \<Gamma> tt ts where "(\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : tt \<rightarrow> t) \<and> ([],\<Gamma> \<turnstile> e : Record ts) \<and> 
@@ -166,11 +163,11 @@ theorem preservation: "\<Sigma> \<leadsto>\<^sub>s \<Sigma>' \<Longrightarrow> \
   next case (ret_app t\<^sub>1 e\<^sub>1 e\<^sub>2 s h)
     then obtain \<Gamma> t\<^sub>2 where T: "([],\<Gamma> \<turnstile> e\<^sub>2 : t\<^sub>1) \<and> (\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t\<^sub>2 \<rightarrow> t) \<and> 
       ([],insert_at 0 t\<^sub>1 \<Gamma> \<turnstile> e\<^sub>1 : t\<^sub>2) \<and> ([] \<turnstile>\<^sub>k t\<^sub>1 : Star) \<and> (h \<turnstile>\<^sub>h \<Gamma>)" by blast
-    hence X: "insert_at (length\<^sub>h h) t\<^sub>1 \<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t\<^sub>2 \<rightarrow> t" by fastforce
-    from T have "length\<^sub>h h = length \<Gamma>" by blast
+    from T have L: "length\<^sub>h h = length \<Gamma>" by fastforce
     moreover from T have "[],insert_at (length (insert_at 0 t\<^sub>1 \<Gamma>)) t\<^sub>1 (insert_at 0 t\<^sub>1 \<Gamma>) \<turnstile> e\<^sub>1 : t\<^sub>2" 
       by (metis tc_weaken)
-    ultimately have "[],insert_at (length\<^sub>h h) t\<^sub>1 \<Gamma> \<turnstile> subst\<^sub>x\<^sub>e 0 (length\<^sub>h h) e\<^sub>1 : t\<^sub>2" by simp
+    ultimately have X: "[],insert_at (length\<^sub>h h) t\<^sub>1 \<Gamma> \<turnstile> subst\<^sub>x\<^sub>e 0 (length\<^sub>h h) e\<^sub>1 : t\<^sub>2" by simp
+    from T L have "insert_at (length\<^sub>h h) t\<^sub>1 \<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t\<^sub>2 \<rightarrow> t" by fastforce
     with T X show ?case by fastforce
   next case (ret_proj xs l x s h)
     moreover then obtain \<Gamma> ts t' where "(lookup ts l = Some t') \<and> (\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t' \<rightarrow> t) \<and> 

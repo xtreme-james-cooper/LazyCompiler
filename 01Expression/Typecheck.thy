@@ -110,6 +110,9 @@ lemma [simp]: "subst\<^sub>x\<^sub>e x x' (subst\<^sub>t\<^sub>e y t e) = subst\
 lemma [simp]: "x \<notin> free_vars e \<Longrightarrow> decr\<^sub>x\<^sub>e x (subst\<^sub>t\<^sub>e y t e) = subst\<^sub>t\<^sub>e y t (decr\<^sub>x\<^sub>e x e)"
   by (induction e arbitrary: x y t) auto
 
+lemma [simp]: "subst\<^sub>x\<^sub>e\<^sub>s xs (subst\<^sub>t\<^sub>e y t e) = subst\<^sub>t\<^sub>e y t (subst\<^sub>x\<^sub>e\<^sub>s xs e)"
+  by (induction e arbitrary: xs y t) simp_all
+
 lemma [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> x \<le> length \<Delta> \<Longrightarrow> 
     insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : map (incr\<^sub>t\<^sub>t x) ts"
   by (induction \<Delta> \<Gamma> xs ts rule: typecheck_xs.induct) simp_all

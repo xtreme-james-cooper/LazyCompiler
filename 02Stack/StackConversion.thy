@@ -12,13 +12,9 @@ termination
 definition invert :: "nat list \<Rightarrow> nat list" where
   "invert xs = invert' 0 xs"
 
-primrec unfold_heap' :: "expr heap \<Rightarrow> expr \<Rightarrow> nat list \<Rightarrow> nat list \<Rightarrow> expr" where
-  "unfold_heap' h e rs [] = e"
- |"unfold_heap' h e rs (x # xs) = 
-    unfold_heap' h (Let (subst\<^sub>x\<^sub>e\<^sub>s (invert rs) (lookup\<^sub>h h x)) e) rs xs"
-
-definition unfold_heap :: "expr heap \<Rightarrow> expr \<Rightarrow> nat list \<Rightarrow> expr" where
-  "unfold_heap h e rs = unfold_heap' h e rs rs"
+primrec unfold_heap :: "expr heap \<Rightarrow> expr \<Rightarrow> nat list \<Rightarrow> expr" where
+  "unfold_heap h e [] = e"
+| "unfold_heap h e (x # xs) = unfold_heap h (Let (lookup\<^sub>h h x) (incr\<^sub>e\<^sub>e x (subst\<^sub>x\<^sub>e x 0 e))) xs"
 
 fun unstack :: "nat list list \<Rightarrow> frame list \<Rightarrow> expr \<Rightarrow> expr heap \<Rightarrow> expr" where
   "unstack [] s e h = e"
@@ -34,9 +30,6 @@ fun unstack :: "nat list list \<Rightarrow> frame list \<Rightarrow> expr \<Righ
 fun unstack_state :: "nat list list \<Rightarrow> stack_state \<Rightarrow> expr" where
   "unstack_state rs (StackState (Eval e) s h) = unstack rs s e h"
 | "unstack_state rs (StackState (Return v) s h) = unstack rs s (devalue v) h"
-
-definition map_through :: "'a list \<Rightarrow> nat list \<Rightarrow> 'a list" where
-  "map_through \<Gamma> xs = map (\<lambda>x. the (lookup \<Gamma> x)) xs"
 
 primrec ordering_for_heap :: "nat list \<Rightarrow> expr heap \<Rightarrow> bool" where
   "ordering_for_heap [] h = True"
@@ -55,6 +48,11 @@ fun safe_unfold_order :: "nat list list \<Rightarrow> expr heap \<Rightarrow> fr
 
 primrec safe_unfold_order\<^sub>\<Sigma> :: "nat list list \<Rightarrow> stack_state \<Rightarrow> bool" where
   "safe_unfold_order\<^sub>\<Sigma> rss (StackState f s h) = (\<forall>\<Gamma>. h \<turnstile>\<^sub>h \<Gamma> \<longrightarrow> safe_unfold_order rss h s \<Gamma>)"
+
+(*
+
+definition map_through :: "'a list \<Rightarrow> nat list \<Rightarrow> 'a list" where
+  "map_through \<Gamma> xs = map (\<lambda>x. the (lookup \<Gamma> x)) xs"
 
 lemma [simp]: "lookup \<Gamma> r = Some tt \<Longrightarrow> insert_at 0 tt (map_through \<Gamma> rs) = map_through \<Gamma> (r # rs)" 
   by (cases "map_through \<Gamma> rs") (simp_all add: map_through_def)
@@ -165,77 +163,70 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> free_vars 
     with tcc_cons show ?case by simp
   qed fastforce+
 
-lemma tc_unfold_heap' [simp]: "distinct (ys @ xs) \<Longrightarrow> length ys + length xs = length \<Gamma> \<Longrightarrow> 
-  h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> \<forall>r \<in> set (ys @ xs). r < length \<Gamma> \<Longrightarrow> \<Delta>,map_through \<Gamma> xs \<turnstile> e : t \<Longrightarrow> 
-    \<Delta>,[] \<turnstile> unfold_heap' h e (ys @ xs) xs : t"
+*)
+
+lemma tc_unfold_heap' [simp]: "[],\<Gamma> \<turnstile> e : t \<Longrightarrow> distinct (ys @ xs) \<Longrightarrow> 
+  length (ys @ xs) = length \<Gamma> \<Longrightarrow> h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> ordering_for_heap (ys @ xs) h \<Longrightarrow> 
+    free_vars e \<inter> set ys = {} \<Longrightarrow> [],[] \<turnstile> unfold_heap h e xs : t"
   proof (induction xs arbitrary: e ys)
-  case (Cons x xs)
-    let ?e\<^sub>1 = "subst\<^sub>x\<^sub>e\<^sub>s (invert (ys @ x # xs)) (lookup\<^sub>h h x)"
-
-    from Cons have "distinct (ys @ x # xs)" by simp
-    from Cons have "Suc (length ys + length xs) = length \<Gamma>" by simp
-    from Cons have "h \<turnstile>\<^sub>h \<Gamma>" by simp
-    from Cons have "\<forall>r\<in>set ys. r < length \<Gamma>" by simp
-    from Cons have "\<forall>r\<in>set xs. r < length \<Gamma>" by simp
-    from Cons have "x < length \<Gamma>" by simp
+  case Nil
+    from Nil have "[],\<Gamma> \<turnstile> e : t" by simp
+    from Nil have "distinct ys" by simp
+    from Nil have "length ys = length \<Gamma>" by simp
+    from Nil have "h \<turnstile>\<^sub>h \<Gamma>" by simp
+    from Nil have "ordering_for_heap ys h" by simp
+    from Nil have "free_vars e \<inter> set ys = {}" by simp
 
 
-    from Cons have "\<Delta>,\<Gamma> \<turnstile> lookup\<^sub>h h x : the (lookup \<Gamma> x) \<Longrightarrow> 
-          free_vars (lookup\<^sub>h h x) \<subseteq> set (ys @ x # xs) \<Longrightarrow> 
-          \<Delta>,map_through \<Gamma> (ys @ x # xs) \<turnstile> ?e\<^sub>1 : the (lookup \<Gamma> x)" by simp
-
-
-
-    have "\<Delta>,map_through \<Gamma> xs \<turnstile> ?e\<^sub>1 : the (lookup \<Gamma> x)" by simp
-    moreover from Cons have "\<Delta>,insert_at 0 (the (lookup \<Gamma> x)) (map_through \<Gamma> xs) \<turnstile> e : t" by simp
-    ultimately have A: "\<Delta>,map_through \<Gamma> xs \<turnstile> Let ?e\<^sub>1 e : t" by simp
-    from Cons have B: "distinct ((ys @ [x]) @ xs)" by simp
-    from Cons have C: "length (ys @ [x]) + length xs = length \<Gamma>" by simp
-    from Cons have "\<forall>r\<in>set ((ys @ [x]) @ xs). r < length \<Gamma> " by simp
-    with Cons A B C have "\<Delta>,[] \<turnstile> unfold_heap' h (Let ?e\<^sub>1 e) ((ys @ [x]) @ xs) xs : t" by blast
+    have "[],[] \<turnstile> e : t" by simp
     thus ?case by simp
-  qed (simp_all add: map_through_def)
+  next case (Cons x xs)
+    let ?e\<^sub>1 = "lookup\<^sub>h h x"
+    let ?e\<^sub>2 = "incr\<^sub>e\<^sub>e x (subst\<^sub>x\<^sub>e x 0 e)"
 
-lemma [simp]: "distinct rs \<Longrightarrow> length rs = length \<Gamma> \<Longrightarrow> h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> 
-  \<forall>r \<in> set rs. r < length \<Gamma> \<Longrightarrow> \<Delta>,map_through \<Gamma> rs \<turnstile> e : t \<Longrightarrow> 
-    \<Delta>,[] \<turnstile> unfold_heap h e rs : t"
-  proof (unfold unfold_heap_def)
-    assume "distinct rs"
-    hence A: "distinct ([] @ rs)" by simp
-    assume "length rs = length \<Gamma>"
-    hence B: "length [] + length rs = length \<Gamma>" by simp
-    assume C: "h \<turnstile>\<^sub>h \<Gamma>"
-    assume "\<forall>r\<in>set rs. r < length \<Gamma>"
-    hence D: "\<forall>r \<in> set ([] @ rs). r < length \<Gamma>" by simp
-    assume "\<Delta> ,map_through \<Gamma> rs \<turnstile> e : t"
-    with A B C D have "\<Delta>,[] \<turnstile> unfold_heap' h e ([] @ rs) rs : t" using tc_unfold_heap' by fastforce
-    thus "\<Delta>,[] \<turnstile> unfold_heap' h e rs rs : t" by simp
+    from Cons have "[] ,\<Gamma> \<turnstile> e : t" by simp
+    from Cons have "distinct (ys @ x # xs)" by simp
+    from Cons have "length (ys @ x # xs) = length \<Gamma>" by simp
+    from Cons have "h \<turnstile>\<^sub>h \<Gamma>" by simp
+    from Cons have "ordering_for_heap (ys @ x # xs) h" by simp
+    from Cons(7) have "free_vars e \<inter> set ys = {}" by simp
+
+
+    from Cons have A: "[],\<Gamma> \<turnstile> Let ?e\<^sub>1 ?e\<^sub>2 : t" by simp
+    from Cons have B: "distinct ((ys @ [x]) @ xs)" by simp
+    from Cons have C: "length ((ys @ [x]) @ xs) = length \<Gamma>" by simp
+    from Cons have D: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> ordering_for_heap ((ys @ [x]) @ xs) h" by simp
+
+
+    have X: "free_vars ?e\<^sub>1 \<inter> set (ys @ [x]) = {}" by simp
+
+
+    from Cons(7) have "var_reduce 0 (free_vars ?e\<^sub>2) \<inter> set (ys @ [x]) = {}" by auto
+    with X have "free_vars (Let ?e\<^sub>1 ?e\<^sub>2) \<inter> set (ys @ [x]) = {}" by auto
+    with Cons A B C D have "[],[] \<turnstile> unfold_heap h (Let ?e\<^sub>1 ?e\<^sub>2) xs : t" by blast
+    thus ?case by simp
   qed
 
-lemma tc_unstack [elim]: "map_through \<Gamma> (concat rs) \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t' \<Longrightarrow> 
-  \<Delta>,map_through \<Gamma> (concat rs) \<turnstile> e : t \<Longrightarrow> safe_unfold_order rs h s \<Gamma> \<Longrightarrow> 
-    \<Delta>,[] \<turnstile> unstack rs s e h : t'"
+lemma [simp]: "[],\<Gamma> \<turnstile> e : t \<Longrightarrow> distinct rs \<Longrightarrow> length rs = length \<Gamma> \<Longrightarrow> h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> 
+    ordering_for_heap rs h \<Longrightarrow> [],[] \<turnstile> unfold_heap h e rs : t"
+  proof -
+    assume A: "[],\<Gamma> \<turnstile> e : t"
+    assume "distinct rs"
+    hence B: "distinct ([] @ rs)" by simp
+    assume "length rs = length \<Gamma>"
+    hence C: "length ([] @ rs) = length \<Gamma>" by simp
+    assume D: "h \<turnstile>\<^sub>h \<Gamma>"
+    assume "ordering_for_heap rs h"
+    hence E: "ordering_for_heap ([] @ rs) h" by simp
+    have "free_vars e \<inter> set [] = {}" by simp
+    with A B C D E have "[],[] \<turnstile> unfold_heap h e rs : t" by (metis tc_unfold_heap')
+    thus "[],[] \<turnstile> unfold_heap h e rs : t" by simp
+  qed
+
+lemma [simp]: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t' \<Longrightarrow> [],\<Gamma> \<turnstile> e : t \<Longrightarrow> safe_unfold_order rs h s \<Gamma> \<Longrightarrow> 
+    [],[] \<turnstile> unstack rs s e h : t'"
   proof (induction rs s e h rule: unstack.induct)
-  case 1
-    thus ?case by auto
-  next case (2 rs rss e h)
-    hence T: "t = t'" by auto
-
-
-    from 2 have "distinct rs" by auto
-    from 2 have "length rs = length \<Gamma>" by auto
-    from 2 have "h \<turnstile>\<^sub>h \<Gamma>" by auto
-    from 2 have RSS: "rss = []" by auto
-    from 2 have "\<forall>r \<in> set rs. r < length \<Gamma> \<and> r < length rs" by auto
-    from 2 have "safe_unfold_order' [rs] h []" by auto
-
-
-    from 2(3) RSS have "\<Delta>,map_through \<Gamma> rs \<turnstile> e : t" by (metis concat.simps append_Nil2)
-
-
-    hence "\<Delta>,[] \<turnstile> unfold_heap h e rs : t" by simp
-    with T RSS show ?case by simp
-  next case (3 r rs x s e h)
+  case (3 r rs x s e h)
     thus ?case by simp
   next case (4 r rs e\<^sub>2 s e h)
     thus ?case by simp
@@ -247,18 +238,10 @@ lemma tc_unstack [elim]: "map_through \<Gamma> (concat rs) \<turnstile>\<^sub>s\
     thus ?case by simp
   next case (8 r rs t s e h)
     thus ?case by simp
-  qed
+  qed auto
 
 lemma tc_unstack_state [elim]: "\<Sigma> hastype t \<Longrightarrow> safe_unfold_order\<^sub>\<Sigma> rs \<Sigma> \<Longrightarrow> 
     [],[] \<turnstile> unstack_state rs \<Sigma> : t"
-  proof (induction \<Sigma> t rule: typecheck_stack_state.induct)
-  case (tc_eval_state \<Gamma> s t t' e h)
-
-
-    have "[],[] \<turnstile> unstack rs s e h : t'" by simp
-    thus ?case by simp
-  next case tc_return_state
-    thus ?case by simp
-  qed
+  by (induction \<Sigma> t rule: typecheck_stack_state.induct) simp_all
 
 end

@@ -25,6 +25,12 @@ lemma [simp]: "x < length as \<Longrightarrow> lookup (remove as x) y = lookup a
     thus ?case by (induction y) (simp_all add: incr_def)
   qed (simp_all add: incr_def)
 
+lemma [simp]: "x \<ge> length as' \<Longrightarrow> lookup as (x - length as') = lookup (as' @ as) x"
+  proof (induction as' arbitrary: x)
+  case Cons
+    thus ?case by (induction x) simp_all
+  qed simp_all
+
 lemma [simp]: "incr 0 x = Suc x"
   by (simp add: incr_def)
 

@@ -107,12 +107,6 @@ lemma [simp]: "subst\<^sub>e\<^sub>e x e' (subst\<^sub>t\<^sub>e y t e) = subst\
 lemma [simp]: "subst\<^sub>x\<^sub>e x x' (subst\<^sub>t\<^sub>e y t e) = subst\<^sub>t\<^sub>e y t (subst\<^sub>x\<^sub>e x x' e)"
   by (induction e arbitrary: x x' y t) simp_all
 
-lemma [simp]: "x \<notin> free_vars e \<Longrightarrow> decr\<^sub>x\<^sub>e x (subst\<^sub>t\<^sub>e y t e) = subst\<^sub>t\<^sub>e y t (decr\<^sub>x\<^sub>e x e)"
-  by (induction e arbitrary: x y t) auto
-
-lemma [simp]: "subst\<^sub>x\<^sub>e\<^sub>s xs (subst\<^sub>t\<^sub>e y t e) = subst\<^sub>t\<^sub>e y t (subst\<^sub>x\<^sub>e\<^sub>s xs e)"
-  by (induction e arbitrary: xs y t) simp_all
-
 lemma [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> x \<le> length \<Delta> \<Longrightarrow> 
     insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : map (incr\<^sub>t\<^sub>t x) ts"
   by (induction \<Delta> \<Gamma> xs ts rule: typecheck_xs.induct) simp_all
@@ -326,15 +320,5 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> free_vars 
     hence "free_vars e \<inter> (\<lambda>x. length [] + x) ` {x. x < length \<Gamma>} = {}" by simp
     with X show "\<Delta>,[] \<turnstile> e : t" by (metis tc_freevars)
   qed
- 
-lemma [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> x \<notin> set xs \<Longrightarrow> x < length \<Gamma> \<Longrightarrow> 
-    \<Delta>,remove \<Gamma> x \<turnstile>\<^sub>x\<^sub>s map (decr x) xs : ts"
-  by (induction \<Delta> \<Gamma> xs ts rule: typecheck_xs.induct) simp_all
-
-lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<notin> free_vars e \<Longrightarrow> x < length \<Gamma> \<Longrightarrow> \<Delta>,remove \<Gamma> x \<turnstile> decr\<^sub>x\<^sub>e x e : t"
-  and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c c : ts \<rightarrow> t \<Longrightarrow> x \<notin> free_vars\<^sub>c c \<Longrightarrow> x < length \<Gamma> \<Longrightarrow> 
-    \<Delta>,remove \<Gamma> x \<turnstile>\<^sub>c map (decr\<^sub>x\<^sub>e (Suc x)) c : ts \<rightarrow> t"
-  by (induction \<Delta> \<Gamma> e t and \<Delta> \<Gamma> c ts t arbitrary: x and x rule: typecheck_typecheck_cs.inducts) 
-     fastforce+
 
 end

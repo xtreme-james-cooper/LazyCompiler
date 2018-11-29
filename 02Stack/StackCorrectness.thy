@@ -106,17 +106,7 @@ have "unstack {} s (Var x) h {x. x < length\<^sub>h h} [] e \<Longrightarrow>
     thus ?case by simp
   qed 
 
-lemma sound: "iter (op \<leadsto>\<^sub>s) \<Sigma> \<Sigma>' \<Longrightarrow> unstack_state \<Sigma> e \<Longrightarrow>
-    \<exists>e'. iter (op \<leadsto>) e e' \<and> unstack_state \<Sigma>' e'"
-  proof (induction \<Sigma> \<Sigma>' arbitrary: e rule: iter.induct)
-  case iter_refl
-    thus ?case by (metis iter.iter_refl)
-  next case (iter_step \<Sigma> \<Sigma>' \<Sigma>'')
-    then obtain e' where "iter (op \<leadsto>) e e' \<and> unstack_state \<Sigma>' e'" by (metis sound')
-    moreover with iter_step obtain e'' where "iter (op \<leadsto>) e' e'' \<and> unstack_state \<Sigma>'' e''" 
-      by fastforce
-    ultimately have "iter (op \<leadsto>) e e'' \<and> unstack_state \<Sigma>'' e''" by fastforce
-    thus ?case by fastforce
-  qed
+lemma sound: "iter (op \<leadsto>\<^sub>s) \<Sigma> \<Sigma>' \<Longrightarrow> \<exists>rs'. iter (op \<leadsto>) (unstack_state rs \<Sigma>) (unstack_state rs' \<Sigma>')"
+  by (induction \<Sigma> \<Sigma>' rule: iter.induct) simp_all
 
 end

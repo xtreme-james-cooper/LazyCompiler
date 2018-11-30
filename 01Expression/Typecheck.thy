@@ -21,7 +21,8 @@ inductive typecheck :: "kind list \<Rightarrow> type list \<Rightarrow> expr \<R
 | tc_proj [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Record ts \<Longrightarrow> lookup ts l = Some t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Proj e l : t"
 | tc_inj [simp]: "lookup \<Gamma> x = Some t \<Longrightarrow> lookup ts l = Some t \<Longrightarrow> \<forall>tt \<in> set ts. \<Delta> \<turnstile>\<^sub>k tt : Star \<Longrightarrow> 
     \<Delta>,\<Gamma> \<turnstile> Inj l ts x : Variant ts"
-| tc_case [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Variant ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Case e t cs : t"
+| tc_case [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Variant ts \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> \<Delta> \<turnstile>\<^sub>k t : Star \<Longrightarrow> 
+    \<Delta>,\<Gamma> \<turnstile> Case e t cs : t"
 | tc_fold [simp]: "lookup \<Gamma> x = Some (subst\<^sub>t\<^sub>t 0 (Inductive k t) t) \<Longrightarrow> 
     insert_at 0 k \<Delta> \<turnstile>\<^sub>k t : Star \<Longrightarrow> \<Delta>,\<Gamma> \<turnstile> Fold t x : Inductive k t"
 | tc_unfold [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Inductive k t \<Longrightarrow> insert_at 0 k \<Delta> \<turnstile>\<^sub>k t : Star \<Longrightarrow> 
@@ -138,6 +139,7 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> le
     hence "insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile> incr\<^sub>t\<^sub>e x e : Variant (map (incr\<^sub>t\<^sub>t x) ts)" by simp
     moreover from tc_case have "insert_at x k \<Delta>,map (incr\<^sub>t\<^sub>t x) \<Gamma> \<turnstile>\<^sub>c map (incr\<^sub>t\<^sub>e x) cs : 
       map (incr\<^sub>t\<^sub>t x) ts \<rightarrow> incr\<^sub>t\<^sub>t x t" by simp
+    moreover from tc_case have "insert_at x k \<Delta> \<turnstile>\<^sub>k incr\<^sub>t\<^sub>t x t : Star" by simp
     ultimately show ?case by simp
   next case (tc_fold \<Gamma> y k' t \<Delta>)
     hence "lookup (map (incr\<^sub>t\<^sub>t x) \<Gamma>) y = Some (incr\<^sub>t\<^sub>t x (subst\<^sub>t\<^sub>t 0 (Inductive k' t) t))" by simp
@@ -223,6 +225,7 @@ lemma tc_incr\<^sub>e\<^sub>e [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Lo
   next case (tc_case \<Delta> \<Gamma> e ts cs t)
     hence "\<Delta>,insert_at x t' \<Gamma> \<turnstile> incr\<^sub>e\<^sub>e x e : Variant ts " by simp
     moreover from tc_case have "\<Delta>,insert_at x t' \<Gamma> \<turnstile>\<^sub>c map (incr\<^sub>e\<^sub>e (Suc x)) cs : ts \<rightarrow> t" by simp
+    moreover from tc_case have "\<Delta> \<turnstile>\<^sub>k t : Star" by simp
     ultimately show ?case by simp
   next case (tc_tyapp \<Delta> \<Gamma> e k t tt)
     moreover hence "\<Delta>,insert_at x t' \<Gamma> \<turnstile> incr\<^sub>e\<^sub>e x e : Forall k t" by simp 
@@ -263,6 +266,7 @@ lemma tc_weaken [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> 
   next case (tc_case \<Delta> \<Gamma> e ts cs t)
     hence "\<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e : Variant ts" by simp
     moreover from tc_case have "\<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t" by simp
+    moreover from tc_case have "\<Delta> \<turnstile>\<^sub>k t : Star" by simp
     ultimately show ?case by simp
   next case (tc_tyapp \<Delta> \<Gamma> e k t tt)
     moreover hence "\<Delta>,insert_at (length \<Gamma>) t' \<Gamma> \<turnstile> e : Forall k t" by simp

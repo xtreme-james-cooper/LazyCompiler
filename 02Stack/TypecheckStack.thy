@@ -21,7 +21,7 @@ inductive typecheck_frame :: "type list \<Rightarrow> frame \<Rightarrow> type \
   tc_sref [simp]: "lookup \<Gamma> x = Some t \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s SRef x : t \<rightarrow> t"
 | tc_sapp [simp]: "[],\<Gamma> \<turnstile> e : t' \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s SApp e : Arrow t' t \<rightarrow> t"
 | tc_sproj [simp]: "lookup ts l = Some t \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s SProj l : Record ts \<rightarrow> t"
-| tc_scase [simp]: "[],\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s SCase t cs : Variant ts \<rightarrow> t"
+| tc_scase [simp]: "[],\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> [] \<turnstile>\<^sub>k t : Star \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s SCase t cs : Variant ts \<rightarrow> t"
 | tc_sunfold [simp]: "[k] \<turnstile>\<^sub>k t : Star \<Longrightarrow> 
     \<Gamma> \<turnstile>\<^sub>s SUnfold t : Inductive k t \<rightarrow> subst\<^sub>t\<^sub>t 0 (Inductive k t) t"
 | tc_styapp [simp]: "[] \<turnstile>\<^sub>k t' : k \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s STyApp t' : Forall k t \<rightarrow> subst\<^sub>t\<^sub>t 0 t' t"

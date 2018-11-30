@@ -170,8 +170,8 @@ have "\<Gamma> \<turnstile>\<^sub>s f : t \<rightarrow> t' \<Longrightarrow> \<G
     from 5 have "ordering_for_heap (concat rss) h" by (auto simp add: safe_unfold_order_def)
     with 5 T X Y Z show ?case by (simp add: safe_unfold_order_def)
   next case (6 rs rss tt cs s e h)
-    then obtain ts where T: "t = Variant ts \<and> ([],\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> tt)" and X: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : tt \<rightarrow> t'" 
-      by fastforce
+    then obtain ts where T: "t = Variant ts \<and> ([] \<turnstile>\<^sub>k tt : Star) \<and> ([],\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> tt)" 
+                     and X: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : tt \<rightarrow> t'" by fastforce
     from 6 have A: "free_vars e \<subseteq> set (rs @ concat rss)" by (simp add: safe_unfold_order_def)
     from 6 have B: "ordering_for_heap (rs @ concat rss) h" by (simp add: safe_unfold_order_def)
     with 6(3, 4) A B have Y: "[],\<Gamma> \<turnstile> unfold_heap h e rs : t" 
@@ -190,7 +190,7 @@ have "[k] \<turnstile>\<^sub>k t : Star \<Longrightarrow>
   next case (8 rs rss t s e h)
 
 have "\<Gamma> \<turnstile>\<^sub>s f : t \<rightarrow> t' \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t' \<rightarrow> t'' \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s\<^sub>s f # s : t \<rightarrow> t''" by simp
-have "[] \<turnstile>\<^sub>k t' : k \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s STyApp t' : Forall k t \<rightarrow> subst\<^sub>t\<^sub>t 0 t' t"
+have "[] \<turnstile>\<^sub>k t' : k \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s STyApp t' : Forall k t \<rightarrow> subst\<^sub>t\<^sub>t 0 t' t" by simp
 
     thus ?case by simp
   qed (auto simp add: safe_unfold_order_def)

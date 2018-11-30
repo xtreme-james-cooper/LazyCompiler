@@ -143,7 +143,7 @@ theorem preservation: "\<Sigma> \<leadsto>\<^sub>s \<Sigma>' \<Longrightarrow> \
       lookup ts l = Some tt \<and> (h \<turnstile>\<^sub>h \<Gamma>)" by blast
     thus ?case by (metis tc_sproj tcs_cons tc_eval_state)
   next case (ev_case e t' cs s h)
-    then obtain \<Gamma> ts where "(\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t' \<rightarrow> t) \<and> ([],\<Gamma> \<turnstile> e : Variant ts) \<and> 
+    then obtain \<Gamma> ts where "(\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t' \<rightarrow> t) \<and> ([],\<Gamma> \<turnstile> e : Variant ts) \<and> ([] \<turnstile>\<^sub>k t' : Star) \<and>
       ([],\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t') \<and> (h \<turnstile>\<^sub>h \<Gamma>)" by blast
     thus ?case by (metis tc_scase tcs_cons tc_eval_state)
   next case (ev_unfold tt e s h)

@@ -129,4 +129,7 @@ lemma [simp]: "x \<notin> set xs \<Longrightarrow> distinct xs \<Longrightarrow>
 lemma [simp]: "y < Suc k \<Longrightarrow> x < Suc k \<Longrightarrow> x \<noteq> y \<Longrightarrow> decr x y < k"
   by (auto simp add: decr_def)
 
+lemma [simp]: "finite xs \<Longrightarrow> finite (var_reduce x xs)"
+  by (simp add: var_reduce_def)
+
 end

@@ -57,31 +57,49 @@ lemma [simp]: "lookup\<^sub>h (map\<^sub>h f h) x = f (lookup\<^sub>h h x)"
 (* compute the transitive closure of f over the heap, and return all hit addresses *)
 
 function heap_walk' :: "('a \<Rightarrow> nat set) \<Rightarrow> 'a heap \<Rightarrow> nat set \<Rightarrow> nat set \<Rightarrow> nat set" where
-  "finite xs \<Longrightarrow> \<forall>a. finite (f a) \<Longrightarrow> card xs < length\<^sub>h h \<Longrightarrow> heap_walk' f h xs x = (
-      let ys = {y \<in> \<Union> (f ` lookup\<^sub>h h ` x). y \<notin> xs \<and> y < length\<^sub>h h}
-      in if ys \<noteq> {} then ys \<union> heap_walk' f h (xs \<union> ys) ys else {})"
-| "\<not> finite xs \<Longrightarrow> heap_walk' f h xs x = undefined"
-| "\<exists>a. \<not> finite (f a) \<Longrightarrow> heap_walk' f h xs x = undefined"
-| "card xs \<ge> length\<^sub>h h \<Longrightarrow> heap_walk' f h xs x = undefined"
+  "heap_walk' f h cs {} = {}"
+| "finite cs \<Longrightarrow> \<forall>a. finite (f a) \<Longrightarrow> card cs < length\<^sub>h h \<Longrightarrow> xs \<noteq> {} \<Longrightarrow> heap_walk' f h cs xs = (
+      let ys = {y \<in> \<Union> (f ` lookup\<^sub>h h ` xs). y \<notin> cs \<and> y < length\<^sub>h h}
+      in xs \<union> heap_walk' f h (cs \<union> ys) ys)"
+| "\<not> finite cs \<Longrightarrow> xs \<noteq> {} \<Longrightarrow> heap_walk' f h cs xs = undefined"
+| "\<exists>a. \<not> finite (f a) \<Longrightarrow> xs \<noteq> {} \<Longrightarrow> heap_walk' f h cs xs = undefined"
+| "card cs \<ge> length\<^sub>h h \<Longrightarrow> xs \<noteq> {} \<Longrightarrow> heap_walk' f h cs xs = undefined"
   by auto fastforce
 termination 
-  proof (relation "measure (\<lambda>(f, h, xs, x). length\<^sub>h h - card xs)")
-    fix xs::"nat set" 
+  proof (relation "measures [\<lambda>(f, h, cs, xs). length\<^sub>h h - card cs,
+                             \<lambda>(f, h, cs, xs). if xs = {} then 0 else 1]")
+    fix cs::"nat set" 
     fix f::"'a \<Rightarrow> nat set" 
-    fix h x ys
-    assume FX: "finite xs"
-    assume FF: "\<forall>a. finite (f a)"
-    assume YS: "ys = {y \<in> \<Union> (f ` lookup\<^sub>h h ` x). y \<notin> xs \<and> y < length\<^sub>h h}"
-    assume CX: "card xs < length\<^sub>h h"
-    assume YC: "ys \<noteq> {}"
-    from FF YS have FY: "finite ys" by simp
-    from YS have IN: "xs \<inter> ys = {}" by auto
-    from FY YC have "card ys > 0" by auto
-    with FX YS CX IN show "((f, h, xs \<union> ys, ys), f, h, xs, x) \<in> 
-      measure (\<lambda>(f, h, xs, x). length\<^sub>h h - card xs)" by (simp add: card_Un_disjoint)
+    fix h xs ys
+    assume YS: "ys = {y \<in> \<Union> (f ` lookup\<^sub>h h ` xs). y \<notin> cs \<and> y < length\<^sub>h h}"
+    moreover assume "\<forall>a. finite (f a)"
+    ultimately have "finite ys" by simp
+    moreover assume "finite cs"
+    moreover assume "card cs < length\<^sub>h h"
+    moreover assume "xs \<noteq> {}"
+    moreover from YS have "cs \<inter> ys = {}" by auto
+    ultimately show "((f, h, cs \<union> ys, ys), f, h, cs, xs) \<in> 
+        measures [\<lambda>(f, h, cs, xs). length\<^sub>h h - card cs, \<lambda>(f, h, cs, xs). if xs = {} then 0 else 1]" 
+      by (induction ys) (simp_all add: card_Un_disjoint)
   qed auto
 
 definition heap_walk :: "('a \<Rightarrow> nat set) \<Rightarrow> 'a heap \<Rightarrow> nat set \<Rightarrow> nat set" where
-  "heap_walk f h xs = heap_walk' f h {} {x \<in> xs. x < length\<^sub>h h}"
+  "heap_walk f h xs = heap_walk' f h {} xs"
+
+lemma walk_subset: "finite cs \<Longrightarrow> \<forall>a. finite (f a) \<Longrightarrow> card cs < length\<^sub>h h \<Longrightarrow> xs \<subseteq> heap_walk' f h cs xs"
+  proof (induction f h cs xs rule: heap_walk'.induct)
+  case (2 cs f h xs)
+    have "xs \<subseteq> (
+      let ys = {y \<in> \<Union> (f ` lookup\<^sub>h h ` xs). y \<notin> cs \<and> y < length\<^sub>h h}
+      in xs \<union> heap_walk' f h (cs \<union> ys) ys)" by (simp add: Let_def)
+    with 2(1, 2, 3, 4) show ?case by simp
+  qed simp_all
+
+lemma [simp]: "finite xs \<Longrightarrow> \<forall>a. finite (f a) \<Longrightarrow> \<forall>x \<in> xs. x < length\<^sub>h h \<Longrightarrow> xs \<subseteq> heap_walk f h xs"
+  proof (induction xs rule: finite.induct)
+  case (insertI xs x)
+    moreover hence "card {} < length\<^sub>h h" by simp
+    ultimately show ?case by (metis heap_walk_def walk_subset card.empty finite.emptyI)
+  qed simp_all
 
 end

@@ -171,4 +171,8 @@ lemma [simp]: "free_vars (incr\<^sub>e\<^sub>e x e) = incr x ` free_vars e"
 lemma [simp]: "x \<notin> free_vars\<^sub>c cs \<Longrightarrow> c \<in> set cs \<Longrightarrow> Suc x \<notin> free_vars c"
   by (induction cs) auto
 
+lemma [simp]: "finite (free_vars e)"
+  and [simp]: "finite (free_vars\<^sub>c c)"
+  by (induction e and c rule: free_vars_free_vars\<^sub>c.induct) simp_all
+
 end

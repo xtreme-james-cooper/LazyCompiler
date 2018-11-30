@@ -75,6 +75,17 @@ lemma [simp]: "ordering_for_heap (ys @ [x] @ xs) h \<Longrightarrow> h \<turnsti
 lemma [elim]: "ordering_for_heap (as @ bs) h \<Longrightarrow> ordering_for_heap bs h"
   by (induction as) simp_all
 
+lemma [simp]: "safe_unfold_order rss e h s \<Gamma> \<Longrightarrow> \<forall>x \<in> free_vars\<^sub>s\<^sub>s s. x < length\<^sub>h h"
+  proof (induction h rss s arbitrary: e rule: ordering_for_stack.induct)
+  case (3 h rs rss f s)
+    from 3 have "safe_unfold_order rss ee h s \<Gamma> \<Longrightarrow> \<forall>x\<in>free_vars\<^sub>s\<^sub>s s. x < length\<^sub>h h" by simp
+    from 3 have "safe_unfold_order (rs # rss) e h (f # s) \<Gamma>" by simp
+
+
+    have "\<forall>x\<in>free_vars\<^sub>s\<^sub>s (f # s). x < length\<^sub>h h" by simp
+    thus ?case by simp
+  qed (simp_all add: safe_unfold_order_def)
+
 lemma tc_unfold_heap' [simp]: "[],\<Gamma> \<turnstile> e : t \<Longrightarrow> free_vars e \<subseteq> set xs \<Longrightarrow> 
     h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> ordering_for_heap (ys @ xs) h \<Longrightarrow> [],[] \<turnstile> unfold_heap h e xs : t"
   proof (induction xs arbitrary: \<Gamma> e ys)
@@ -182,8 +193,9 @@ lemma [simp]: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t' \<Lo
     with 4(3, 4) A B have Y: "[],\<Gamma> \<turnstile> unfold_heap h e rs : t" 
       by (metis tc_unfold_heap safe_unfold_order_def)
     from A B have Z: "free_vars (unfold_heap h e rs) \<subseteq> set (concat rss)" by (metis free_vars_unfold)
-    from 4 have "ordering_for_heap (concat rss) h" by (auto simp add: safe_unfold_order_def)
-    with 4 T X Y Z show ?case by (simp add: safe_unfold_order_def)
+    from 4 have W: "ordering_for_heap (concat rss) h" by (auto simp add: safe_unfold_order_def)
+    from 4 have "free_vars e\<^sub>2 \<subseteq> heap_walk free_vars h (free_vars e\<^sub>2)" by simp
+    with 4 T X Y Z W show ?case by (auto simp add: safe_unfold_order_def)
   next case (5 rs rss l s e h)
     then obtain tt ts where T: "t = Record ts \<and> lookup ts l = Some tt" and X: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : tt \<rightarrow> t'" 
       by fastforce
@@ -202,8 +214,9 @@ lemma [simp]: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t' \<Lo
     with 6(3, 4) A B have Y: "[],\<Gamma> \<turnstile> unfold_heap h e rs : t" 
       by (metis tc_unfold_heap safe_unfold_order_def)
     from A B have Z: "free_vars (unfold_heap h e rs) \<subseteq> set (concat rss)" by (metis free_vars_unfold)
-    from 6 have "ordering_for_heap (concat rss) h" by (auto simp add: safe_unfold_order_def)
-    with 6 T X Y Z show ?case by (simp add: safe_unfold_order_def)
+    from 6 have W: "ordering_for_heap (concat rss) h" by (auto simp add: safe_unfold_order_def)
+    from 6 have "free_vars\<^sub>c cs \<subseteq> heap_walk free_vars h (free_vars\<^sub>c cs)" by simp
+    with 6 T X Y Z W show ?case by (auto simp add: safe_unfold_order_def)
   next case (7 rs rss tt s e h)
     then obtain k where T: "t = Inductive k tt \<and> ([k] \<turnstile>\<^sub>k tt : Star)" 
       and X: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : subst\<^sub>t\<^sub>t 0 (Inductive k tt) tt \<rightarrow> t'" by fastforce

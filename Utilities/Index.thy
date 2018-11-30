@@ -34,11 +34,17 @@ lemma [simp]: "x \<ge> length as' \<Longrightarrow> lookup as (x - length as') =
 lemma [simp]: "incr 0 x = Suc x"
   by (simp add: incr_def)
 
+lemma [simp]: "incr x x = Suc x"
+  by (simp add: incr_def)
+
 lemma [simp]: "incr y x \<noteq> y"
   by (simp add: incr_def)
 
 lemma [simp]: "decr y (incr y x) = x"
   by (simp add: incr_def decr_def)
+
+lemma [simp]: "decr x (Suc x) = x"
+  by (simp add: decr_def)
 
 lemma [simp]: "x \<noteq> y \<Longrightarrow> incr y (decr y x) = x"
   by (auto simp add: incr_def decr_def)
@@ -81,6 +87,9 @@ lemma [simp]: "(x \<in> incr y ` xs) = (if x = y then False else decr y x \<in> 
 lemma [simp]: "y \<le> x \<Longrightarrow> var_reduce y (incr (Suc x) ` xs) = incr x ` var_reduce y xs"
   by (auto split: if_splits) (auto simp add: incr_def)
 
+lemma [simp]: "var_reduce x (incr x ` xs) = xs"
+  by auto
+
 lemma [simp]: "y \<le> x \<Longrightarrow> var_reduce y (insert (Suc x) xs) = insert x (var_reduce y xs)"
   by (auto simp add: incr_def split: if_splits)
 
@@ -95,5 +104,11 @@ lemma [simp]: "var_reduce x (xs \<union> ys) = var_reduce x xs \<union> var_redu
 
 lemma [simp]: "var_reduce 0 xs \<inter> (op +) y ` ys = {} \<Longrightarrow> xs \<inter> (op +) (Suc y) ` ys = {}"
   by (auto simp add: var_reduce_def)
+
+lemma [simp]: "x \<notin> set xs \<Longrightarrow> distinct xs \<Longrightarrow> distinct (map (decr x) xs)"
+  by (induction xs) simp_all
+
+lemma [simp]: "y < Suc k \<Longrightarrow> x < Suc k \<Longrightarrow> x \<noteq> y \<Longrightarrow> decr x y < k"
+  by (auto simp add: decr_def)
 
 end

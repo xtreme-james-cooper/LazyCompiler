@@ -2,9 +2,12 @@ theory StackConversion
 imports EvaluateStack
 begin
 
+abbreviation reshuffle :: "nat \<Rightarrow> expr \<Rightarrow> expr" where
+  "reshuffle x e \<equiv> incr\<^sub>e\<^sub>e (Suc x) (subst\<^sub>x\<^sub>e (Suc x) 0 (incr\<^sub>e\<^sub>e 0 e))"
+
 primrec unfold_heap :: "expr heap \<Rightarrow> expr \<Rightarrow> nat list \<Rightarrow> expr" where
   "unfold_heap h e [] = e"
-| "unfold_heap h e (x # xs) = unfold_heap h (Let (lookup\<^sub>h h x) (incr\<^sub>e\<^sub>e x (subst\<^sub>x\<^sub>e x 0 e))) xs"
+| "unfold_heap h e (x # xs) = unfold_heap h (Let (lookup\<^sub>h h x) (reshuffle x e)) xs"
 
 fun unstack :: "nat list list \<Rightarrow> frame list \<Rightarrow> expr \<Rightarrow> expr heap \<Rightarrow> expr" where
   "unstack [] s e h = e"
@@ -39,47 +42,53 @@ fun safe_unfold_order :: "nat list list \<Rightarrow> expr heap \<Rightarrow> fr
 primrec safe_unfold_order\<^sub>\<Sigma> :: "nat list list \<Rightarrow> stack_state \<Rightarrow> bool" where
   "safe_unfold_order\<^sub>\<Sigma> rss (StackState f s h) = (\<forall>\<Gamma>. h \<turnstile>\<^sub>h \<Gamma> \<longrightarrow> safe_unfold_order rss h s \<Gamma>)"
 
+lemma [simp]: "ordering_for_heap xs h \<Longrightarrow> \<forall>x \<in> set xs. x < length\<^sub>h h"
+  by (induction xs) simp_all
+
+lemma [simp]: "distinct xs \<Longrightarrow> length xs = length \<Gamma> \<Longrightarrow> h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> ordering_for_heap xs h \<Longrightarrow> 
+    set xs = {x. x < length \<Gamma>}"
+  proof -
+    assume "ordering_for_heap xs h"
+    hence "\<forall>x \<in> set xs. x < length\<^sub>h h" by simp
+    moreover assume "h \<turnstile>\<^sub>h \<Gamma>"
+    moreover hence "length\<^sub>h h = length \<Gamma>" by auto
+    ultimately have "\<forall>x \<in> set xs. x < length \<Gamma>" by simp
+    moreover assume "distinct xs"
+    moreover assume "length xs = length \<Gamma>"
+    ultimately show "set xs = {x. x < length \<Gamma>}" by (metis pack_pigeonholes)
+  qed
+
+lemma [simp]: "ordering_for_heap (ys @ [x] @ xs) h \<Longrightarrow> free_vars (lookup\<^sub>h h x) \<subseteq> set xs"
+  by (induction ys) simp_all
+
+lemma [simp]: "ordering_for_heap (ys @ [x] @ xs) h \<Longrightarrow> h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> \<exists>t. lookup \<Gamma> x = Some t"
+  proof (induction ys) 
+  case Nil
+    moreover hence "length\<^sub>h h = length \<Gamma>" by auto
+    ultimately show ?case by simp
+  qed simp_all
+
 lemma tc_unfold_heap' [simp]: "[],\<Gamma> \<turnstile> e : t \<Longrightarrow> distinct (ys @ xs) \<Longrightarrow> 
   length (ys @ xs) = length \<Gamma> \<Longrightarrow> h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> ordering_for_heap (ys @ xs) h \<Longrightarrow> 
     free_vars e \<inter> set ys = {} \<Longrightarrow> [],[] \<turnstile> unfold_heap h e xs : t"
-  proof (induction xs arbitrary: e ys)
-  case Nil
-    from Nil have "[],\<Gamma> \<turnstile> e : t" by simp
-    from Nil have "distinct ys" by simp
-    from Nil have "length ys = length \<Gamma>" by simp
-    from Nil have "h \<turnstile>\<^sub>h \<Gamma>" by simp
-    from Nil have "ordering_for_heap ys h" by simp
-    from Nil have "free_vars e \<inter> set ys = {}" by simp
-
-
-    have "[],[] \<turnstile> e : t" by simp
-    thus ?case by simp
-  next case (Cons x xs)
-    let ?e\<^sub>1 = "lookup\<^sub>h h x"
-    let ?e\<^sub>2 = "incr\<^sub>e\<^sub>e x (subst\<^sub>x\<^sub>e x 0 e)"
-
-    from Cons have "[] ,\<Gamma> \<turnstile> e : t" by simp
-    from Cons have "distinct (ys @ x # xs)" by simp
-    from Cons have "length (ys @ x # xs) = length \<Gamma>" by simp
-    from Cons have "h \<turnstile>\<^sub>h \<Gamma>" by simp
-    from Cons have "ordering_for_heap (ys @ x # xs) h" by simp
-    from Cons(7) have "free_vars e \<inter> set ys = {}" by simp
-
-
-    from Cons have A: "[],\<Gamma> \<turnstile> Let ?e\<^sub>1 ?e\<^sub>2 : t" by simp
+  proof (induction xs arbitrary: \<Gamma> e ys)
+  case (Cons x xs)
+    from Cons obtain tt where T: "lookup \<Gamma> x = Some tt" by fastforce
+    with Cons have "[],\<Gamma> \<turnstile> lookup\<^sub>h h x : tt" by simp
+    moreover from T obtain \<Gamma>' where "\<Gamma> = insert_at x tt \<Gamma>' \<and> x \<le> length \<Gamma>'" by fastforce
+    moreover with Cons(2) have "[],insert_at 0 tt (insert_at x tt \<Gamma>') \<turnstile> incr\<^sub>e\<^sub>e 0 e : t" 
+      using tc_incr\<^sub>e\<^sub>e by blast
+    ultimately have A: "[],\<Gamma> \<turnstile> Let (lookup\<^sub>h h x) (reshuffle x e) : t" by simp
     from Cons have B: "distinct ((ys @ [x]) @ xs)" by simp
     from Cons have C: "length ((ys @ [x]) @ xs) = length \<Gamma>" by simp
     from Cons have D: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> ordering_for_heap ((ys @ [x]) @ xs) h" by simp
-
-
-    have X: "free_vars ?e\<^sub>1 \<inter> set (ys @ [x]) = {}" by simp
-
-
-    from Cons(7) have "var_reduce 0 (free_vars ?e\<^sub>2) \<inter> set (ys @ [x]) = {}" by auto
-    with X have "free_vars (Let ?e\<^sub>1 ?e\<^sub>2) \<inter> set (ys @ [x]) = {}" by auto
-    with Cons A B C D have "[],[] \<turnstile> unfold_heap h (Let ?e\<^sub>1 ?e\<^sub>2) xs : t" by blast
+    from Cons have "free_vars (lookup\<^sub>h h x) \<subseteq> set xs" by simp
+    with Cons(3, 7) have "free_vars (Let (lookup\<^sub>h h x) (reshuffle x e)) \<inter> set (ys @ [x]) = {}" 
+      by auto
+    with Cons A B C D have "[],[] \<turnstile> unfold_heap h (Let (lookup\<^sub>h h x) (reshuffle x e)) xs : t" 
+      by blast
     thus ?case by simp
-  qed
+  qed simp_all
 
 lemma [simp]: "[],\<Gamma> \<turnstile> e : t \<Longrightarrow> distinct rs \<Longrightarrow> length rs = length \<Gamma> \<Longrightarrow> h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> 
     ordering_for_heap rs h \<Longrightarrow> [],[] \<turnstile> unfold_heap h e rs : t"
@@ -99,11 +108,24 @@ lemma [simp]: "[],\<Gamma> \<turnstile> e : t \<Longrightarrow> distinct rs \<Lo
 
 lemma [simp]: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t' \<Longrightarrow> [],\<Gamma> \<turnstile> e : t \<Longrightarrow> safe_unfold_order rs h s \<Gamma> \<Longrightarrow> 
     [],[] \<turnstile> unstack rs s e h : t'"
-  proof (induction rs s e h rule: unstack.induct)
+  proof (induction rs s e h arbitrary: t rule: unstack.induct)
   case (3 r rs x s e h)
     thus ?case by simp
   next case (4 r rs e\<^sub>2 s e h)
-    thus ?case by simp
+
+    from 4 have "\<Gamma> \<turnstile>\<^sub>s\<^sub>s SApp e\<^sub>2 # s : t \<rightarrow> t'" by simp
+    from 4 have "[] ,\<Gamma> \<turnstile> e : t" by simp
+    from 4 have "safe_unfold_order (r # rs) h (SApp e\<^sub>2 # s) \<Gamma>" by simp
+
+
+    have X: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : tt \<rightarrow> t'" by simp
+
+
+    have Y: "[] ,\<Gamma> \<turnstile> App (unfold_heap h e r) e\<^sub>2 : tt" by simp
+
+
+    have "safe_unfold_order rs h s \<Gamma>" by simp
+    with 4 X Y show ?case by simp
   next case (5 r rs l s e h)
     thus ?case by simp
   next case (6 r rs t cs s e h)

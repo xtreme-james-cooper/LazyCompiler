@@ -93,4 +93,15 @@ lemma [simp]: "lookup (as @ bs) (length as + x) = lookup bs x"
 lemma [simp]: "x \<le> length as \<Longrightarrow> insert_at x a (as @ bs) = insert_at x a as @ bs"
   by (induction x a as rule: insert_at.induct) (cases bs, simp_all)
 
+lemma [simp]: "lookup as x = Some a \<Longrightarrow> \<exists>as'. as = insert_at x a as' \<and> x \<le> length as'"
+  proof (induction as x rule: lookup.induct)
+  case (2 a' as)
+    have "a # as = insert_at 0 a as" by (cases as) simp_all
+    with 2 show ?case by fastforce
+  next case (3 a' as x)
+    then obtain as' where "as = insert_at x a as' \<and> x \<le> length as'" by fastforce
+    moreover have "a' # insert_at x a as' = insert_at (Suc x) a (a' # as')" by simp
+    ultimately show ?case by fastforce
+  qed simp_all
+
 end

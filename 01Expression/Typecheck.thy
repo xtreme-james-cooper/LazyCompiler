@@ -199,7 +199,7 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrigh
     \<Delta>,insert_at x t' \<Gamma> \<turnstile>\<^sub>x\<^sub>s map (\<lambda>y. incr x y) xs : ts"
   by (induction \<Delta> \<Gamma> xs ts rule: typecheck_xs.induct) simp_all
 
-lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Delta>,insert_at x t' \<Gamma> \<turnstile> incr\<^sub>e\<^sub>e x e : t"
+lemma tc_incr\<^sub>e\<^sub>e [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> \<Delta>,insert_at x t' \<Gamma> \<turnstile> incr\<^sub>e\<^sub>e x e : t"
   and [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> x \<le> length \<Gamma> \<Longrightarrow> 
     \<Delta>,insert_at x t' \<Gamma> \<turnstile>\<^sub>c map (incr\<^sub>e\<^sub>e (Suc x)) cs : ts \<rightarrow> t"
   proof (induction \<Delta> \<Gamma> e t and \<Delta> \<Gamma> cs ts t arbitrary: x t' and x t'

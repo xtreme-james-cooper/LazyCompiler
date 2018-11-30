@@ -50,7 +50,7 @@ lemma [elim]: "distinct xs \<Longrightarrow> k < length xs \<Longrightarrow> \<f
       qed simp_all
   qed
 
-lemma pack_pigeonholes: "distinct xs \<Longrightarrow> k = length xs \<Longrightarrow> \<forall>x \<in> set xs. x < k \<Longrightarrow> set xs = {x. x < k}"
+lemma pack_pigeonholes: "distinct xs \<Longrightarrow> k = length xs \<Longrightarrow> \<forall>x \<in> set xs. x < k \<Longrightarrow> set xs = {..< k}"
   by auto
 
 end

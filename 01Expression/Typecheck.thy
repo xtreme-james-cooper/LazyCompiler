@@ -273,7 +273,7 @@ lemma tc_weaken [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> 
     ultimately show ?case by fastforce
   qed fastforce+
 
-lemma tc_free_var: "lookup (\<Gamma>' @ \<Gamma>) x = Some t \<Longrightarrow> x \<notin> (\<lambda>x. length \<Gamma>' + x) ` {x. x < length \<Gamma>} \<Longrightarrow> 
+lemma tc_free_var: "lookup (\<Gamma>' @ \<Gamma>) x = Some t \<Longrightarrow> x \<notin> (\<lambda>x. length \<Gamma>' + x) ` {..< length \<Gamma>} \<Longrightarrow> 
     lookup \<Gamma>' x = Some t"
   proof (induction "x < length \<Gamma>'")
   case False
@@ -282,22 +282,22 @@ lemma tc_free_var: "lookup (\<Gamma>' @ \<Gamma>) x = Some t \<Longrightarrow> x
   qed simp_all
 
 lemma tc_freevars_xs: "\<Delta> ,\<Gamma>'@\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> 
-    set xs \<inter> (\<lambda>x. length \<Gamma>' + x) ` {x. x < length \<Gamma>} = {} \<Longrightarrow> \<Delta>,\<Gamma>' \<turnstile>\<^sub>x\<^sub>s xs : ts"
+    set xs \<inter> (\<lambda>x. length \<Gamma>' + x) ` {..< length \<Gamma>} = {} \<Longrightarrow> \<Delta>,\<Gamma>' \<turnstile>\<^sub>x\<^sub>s xs : ts"
   proof (induction \<Delta> "\<Gamma>'@\<Gamma>" xs ts rule: typecheck_xs.induct) 
   case tcx_cons
     thus ?case using tc_free_var by force
   qed simp_all
 
 lemma tc_freevars: "\<Delta>,\<Gamma>'@\<Gamma> \<turnstile> e : t \<Longrightarrow> 
-    free_vars e \<inter> (\<lambda>x. length \<Gamma>' + x) ` {x. x < length \<Gamma>} = {} \<Longrightarrow> \<Delta>,\<Gamma>' \<turnstile> e : t"
-  and "\<Delta>,\<Gamma>'@\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> free_vars\<^sub>c cs \<inter> (\<lambda>x. length \<Gamma>' + x) ` {x. x < length \<Gamma>} = {} \<Longrightarrow> 
+    free_vars e \<inter> (\<lambda>x. length \<Gamma>' + x) ` {..< length \<Gamma>} = {} \<Longrightarrow> \<Delta>,\<Gamma>' \<turnstile> e : t"
+  and "\<Delta>,\<Gamma>'@\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> t \<Longrightarrow> free_vars\<^sub>c cs \<inter> (\<lambda>x. length \<Gamma>' + x) ` {..< length \<Gamma>} = {} \<Longrightarrow> 
     \<Delta>,\<Gamma>' \<turnstile>\<^sub>c cs : ts \<rightarrow> t "
   proof (induction \<Delta> "\<Gamma>'@\<Gamma>" e t and \<Delta> "\<Gamma>'@\<Gamma>" cs ts t arbitrary: \<Gamma>' \<Gamma> and \<Gamma>' \<Gamma>
          rule: typecheck_typecheck_cs.inducts)
   case tc_var
     thus ?case using tc_free_var by fastforce
   next case (tc_let \<Delta> e\<^sub>1 t\<^sub>1 e\<^sub>2 t\<^sub>2)
-    moreover hence "var_reduce 0 (free_vars e\<^sub>2) \<inter> (op +) (length \<Gamma>') ` {x. x < length \<Gamma>} = {}" 
+    moreover hence "var_reduce 0 (free_vars e\<^sub>2) \<inter> (op +) (length \<Gamma>') ` {..< length \<Gamma>} = {}" 
       by auto
     ultimately have "\<Delta>,insert_at 0 t\<^sub>1 \<Gamma>' \<turnstile> e\<^sub>2 : t\<^sub>2" by simp
     moreover from tc_let have "\<Delta>,\<Gamma>' \<turnstile> e\<^sub>1 : t\<^sub>1" by fastforce
@@ -309,19 +309,19 @@ lemma tc_freevars: "\<Delta>,\<Gamma>'@\<Gamma> \<turnstile> e : t \<Longrightar
   next case tc_fold
     thus ?case using tc_free_var by fastforce
   next case (tcc_cons \<Delta> t' e t cs ts)
-    moreover hence "var_reduce 0 (free_vars e) \<inter> (op +) (length \<Gamma>') ` {x. x < length \<Gamma>} = {}" 
+    moreover hence "var_reduce 0 (free_vars e) \<inter> (op +) (length \<Gamma>') ` {..< length \<Gamma>} = {}" 
       by auto
     ultimately have "\<Delta>,insert_at 0 t' \<Gamma>' \<turnstile> e : t" by simp
     moreover from tcc_cons have "\<Delta>,\<Gamma>' \<turnstile>\<^sub>c cs : ts \<rightarrow> t" by fastforce
     ultimately show ?case by simp
   qed fastforce+
 
-lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> free_vars e \<inter> {x. x < length \<Gamma>} = {} \<Longrightarrow> \<Delta>,[] \<turnstile> e : t"
+lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> free_vars e \<inter> {..< length \<Gamma>} = {} \<Longrightarrow> \<Delta>,[] \<turnstile> e : t"
   proof -
     assume "\<Delta>,\<Gamma> \<turnstile> e : t"
     hence X: "\<Delta>,[]@\<Gamma> \<turnstile> e : t" by simp
-    assume "free_vars e \<inter> {x. x < length \<Gamma>} = {}"
-    hence "free_vars e \<inter> (\<lambda>x. length [] + x) ` {x. x < length \<Gamma>} = {}" by simp
+    assume "free_vars e \<inter> {..< length \<Gamma>} = {}"
+    hence "free_vars e \<inter> (\<lambda>x. length [] + x) ` {..< length \<Gamma>} = {}" by simp
     with X show "\<Delta>,[] \<turnstile> e : t" by (metis tc_freevars)
   qed
 

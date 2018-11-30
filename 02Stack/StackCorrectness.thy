@@ -63,7 +63,7 @@ lemma sound': "\<Sigma> \<leadsto>\<^sub>s \<Sigma>' \<Longrightarrow> unstack_s
     hence "unstack_state (StackState (Eval (Var x)) s h) e" by simp
 
 
-have "unstack {} s (Var x) h {x. x < length\<^sub>h h} [] e \<Longrightarrow> 
+have "unstack {} s (Var x) h {..< length\<^sub>h h} [] e \<Longrightarrow> 
     unstack_state (StackState (Eval (Var x)) s h) e" by simp
 
     have "\<exists>e'. iter op \<leadsto> e e' \<and> unstack_state (StackState (Eval (lookup\<^sub>h x h)) (SRef x # s) h) e'" by simp

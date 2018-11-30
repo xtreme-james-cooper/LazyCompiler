@@ -52,4 +52,36 @@ lemma [simp]: "x < length\<^sub>h h \<Longrightarrow> lookup\<^sub>h (remove\<^s
 lemma [simp]: "lookup\<^sub>h (map\<^sub>h f h) x = f (lookup\<^sub>h h x)"
   by (induction h) simp_all
 
+(* heap-walking *)
+
+(* compute the transitive closure of f over the heap, and return all hit addresses *)
+
+function heap_walk' :: "('a \<Rightarrow> nat set) \<Rightarrow> 'a heap \<Rightarrow> nat set \<Rightarrow> nat set \<Rightarrow> nat set" where
+  "finite xs \<Longrightarrow> \<forall>a. finite (f a) \<Longrightarrow> card xs < length\<^sub>h h \<Longrightarrow> heap_walk' f h xs x = (
+      let ys = {y \<in> \<Union> (f ` lookup\<^sub>h h ` x). y \<notin> xs \<and> y < length\<^sub>h h}
+      in if ys \<noteq> {} then ys \<union> heap_walk' f h (xs \<union> ys) ys else {})"
+| "\<not> finite xs \<Longrightarrow> heap_walk' f h xs x = undefined"
+| "\<exists>a. \<not> finite (f a) \<Longrightarrow> heap_walk' f h xs x = undefined"
+| "card xs \<ge> length\<^sub>h h \<Longrightarrow> heap_walk' f h xs x = undefined"
+  by auto fastforce
+termination 
+  proof (relation "measure (\<lambda>(f, h, xs, x). length\<^sub>h h - card xs)")
+    fix xs::"nat set" 
+    fix f::"'a \<Rightarrow> nat set" 
+    fix h x ys
+    assume FX: "finite xs"
+    assume FF: "\<forall>a. finite (f a)"
+    assume YS: "ys = {y \<in> \<Union> (f ` lookup\<^sub>h h ` x). y \<notin> xs \<and> y < length\<^sub>h h}"
+    assume CX: "card xs < length\<^sub>h h"
+    assume YC: "ys \<noteq> {}"
+    from FF YS have FY: "finite ys" by simp
+    from YS have IN: "xs \<inter> ys = {}" by auto
+    from FY YC have "card ys > 0" by auto
+    with FX YS CX IN show "((f, h, xs \<union> ys, ys), f, h, xs, x) \<in> 
+      measure (\<lambda>(f, h, xs, x). length\<^sub>h h - card xs)" by (simp add: card_Un_disjoint)
+  qed auto
+
+definition heap_walk :: "('a \<Rightarrow> nat set) \<Rightarrow> 'a heap \<Rightarrow> nat set \<Rightarrow> nat set" where
+  "heap_walk f h xs = heap_walk' f h {} {x \<in> xs. x < length\<^sub>h h}"
+
 end

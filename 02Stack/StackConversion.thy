@@ -29,16 +29,16 @@ primrec ordering_for_heap :: "nat list \<Rightarrow> expr heap \<Rightarrow> boo
 | "ordering_for_heap (r # rs) h = 
     (r < length\<^sub>h h \<and> free_vars (lookup\<^sub>h h r) \<subseteq> set rs \<and> ordering_for_heap rs h)"
 
-fun ordering_for_stack :: "nat list list \<Rightarrow> frame list \<Rightarrow> bool" where
-  "ordering_for_stack [] s = False"
-| "ordering_for_stack (rs # rss) [] = (rss = [])"
-| "ordering_for_stack (rs # rss) (f # s) = 
-    (free_vars\<^sub>s f \<subseteq> set (concat rss) \<and> ordering_for_stack rss s)"
+fun ordering_for_stack :: "expr heap \<Rightarrow> nat list list \<Rightarrow> frame list \<Rightarrow> bool" where
+  "ordering_for_stack h [] s = False"
+| "ordering_for_stack h (rs # rss) [] = (rss = [])"
+| "ordering_for_stack h (rs # rss) (f # s) = 
+    (heap_walk free_vars h (free_vars\<^sub>s f) \<subseteq> set (concat rss) \<and> ordering_for_stack h rss s)"
 
 definition safe_unfold_order :: "nat list list \<Rightarrow> expr \<Rightarrow> expr heap \<Rightarrow> frame list \<Rightarrow> type list \<Rightarrow> 
     bool" where
   "safe_unfold_order rss e h s \<Gamma> = (distinct (concat rss) \<and> free_vars e \<subseteq> set (concat rss) \<and> 
-    h \<turnstile>\<^sub>h \<Gamma> \<and> ordering_for_heap (concat rss) h \<and> ordering_for_stack rss s)"
+    h \<turnstile>\<^sub>h \<Gamma> \<and> ordering_for_heap (concat rss) h \<and> ordering_for_stack h rss s)"
 
 fun safe_unfold_order\<^sub>\<Sigma> :: "nat list list \<Rightarrow> stack_state \<Rightarrow> bool" where
   "safe_unfold_order\<^sub>\<Sigma> rss (StackState (Eval e) s h) = (\<forall>\<Gamma>. h \<turnstile>\<^sub>h \<Gamma> \<longrightarrow> safe_unfold_order rss e h s \<Gamma>)"
@@ -49,7 +49,7 @@ lemma [simp]: "ordering_for_heap xs h \<Longrightarrow> \<forall>x \<in> set xs.
   by (induction xs) simp_all
 
 lemma [simp]: "distinct xs \<Longrightarrow> length xs = length \<Gamma> \<Longrightarrow> h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> ordering_for_heap xs h \<Longrightarrow> 
-    set xs = {x. x < length \<Gamma>}"
+    set xs = {..< length \<Gamma>}"
   proof -
     assume "ordering_for_heap xs h"
     hence "\<forall>x \<in> set xs. x < length\<^sub>h h" by simp
@@ -58,7 +58,7 @@ lemma [simp]: "distinct xs \<Longrightarrow> length xs = length \<Gamma> \<Longr
     ultimately have "\<forall>x \<in> set xs. x < length \<Gamma>" by simp
     moreover assume "distinct xs"
     moreover assume "length xs = length \<Gamma>"
-    ultimately show "set xs = {x. x < length \<Gamma>}" by (metis pack_pigeonholes)
+    ultimately show "set xs = {..< length \<Gamma>}" by (metis pack_pigeonholes)
   qed
 
 lemma heap_lookup_freevars [simp]: "ordering_for_heap (ys @ [x] @ xs) h \<Longrightarrow> 
@@ -145,10 +145,35 @@ lemma [simp]: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t' \<Lo
     [],[] \<turnstile> unstack rs s e h : t'"
   proof (induction rs s e h arbitrary: t rule: unstack.induct)
   case (3 rs rss x s e h)
+    then obtain T: "lookup \<Gamma> x = Some t" and X: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t \<rightarrow> t'" by fastforce
+    from 3 have A: "free_vars e \<subseteq> set (rs @ concat rss)" by (simp add: safe_unfold_order_def)
+    from 3 have B: "ordering_for_heap (rs @ concat rss) h" by (simp add: safe_unfold_order_def)
+    with 3(3, 4) A B have Y: "[],\<Gamma> \<turnstile> unfold_heap h e rs : t" 
+      by (metis tc_unfold_heap safe_unfold_order_def)
 
-have "\<Gamma> \<turnstile>\<^sub>s f : t \<rightarrow> t' \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t' \<rightarrow> t'' \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s\<^sub>s f # s : t \<rightarrow> t''" by simp
 
-    thus ?case by simp
+    from 3 have "[] ,\<Gamma> \<turnstile> e : t" by simp
+    from 3 have "distinct (concat (rs # rss))" by (simp add: safe_unfold_order_def)
+    from 3 have "h \<turnstile>\<^sub>h \<Gamma>" by (simp add: safe_unfold_order_def)
+
+    from 3 have "heap_walk free_vars h {x} \<subseteq> set (concat rss)" by (simp add: safe_unfold_order_def)
+    from 3 have "ordering_for_stack h rss s" by (simp add: safe_unfold_order_def)
+
+
+    from 3 have "ordering_for_heap (rs @ concat rss) h" by (simp add: safe_unfold_order_def)
+    moreover from 3 have "free_vars e \<subseteq> set (rs @ concat rss)" by (simp add: safe_unfold_order_def)
+    ultimately have "free_vars (unfold_heap h e rs) \<subseteq> set (concat rss)" by (metis free_vars_unfold)
+
+
+
+
+
+
+    have Z: "ordering_for_heap (concat rss) (update\<^sub>h h x (unfold_heap h e rs))" by simp
+
+
+    have "ordering_for_stack (update\<^sub>h h x (unfold_heap h e rs)) rss s" by simp
+    with 3 T X Y Z show ?case by (simp add: safe_unfold_order_def)
   next case (4 rs rss e\<^sub>2 s e h)
     then obtain t\<^sub>1 t\<^sub>2 where T: "t = Arrow t\<^sub>1 t\<^sub>2 \<and> ([],\<Gamma> \<turnstile> e\<^sub>2 : t\<^sub>1)" and X: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t\<^sub>2 \<rightarrow> t'" 
       by fastforce
@@ -171,7 +196,7 @@ have "\<Gamma> \<turnstile>\<^sub>s f : t \<rightarrow> t' \<Longrightarrow> \<G
     with 5 T X Y Z show ?case by (simp add: safe_unfold_order_def)
   next case (6 rs rss tt cs s e h)
     then obtain ts where T: "t = Variant ts \<and> ([] \<turnstile>\<^sub>k tt : Star) \<and> ([],\<Gamma> \<turnstile>\<^sub>c cs : ts \<rightarrow> tt)" 
-                     and X: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : tt \<rightarrow> t'" by fastforce
+      and X: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : tt \<rightarrow> t'" by fastforce
     from 6 have A: "free_vars e \<subseteq> set (rs @ concat rss)" by (simp add: safe_unfold_order_def)
     from 6 have B: "ordering_for_heap (rs @ concat rss) h" by (simp add: safe_unfold_order_def)
     with 6(3, 4) A B have Y: "[],\<Gamma> \<turnstile> unfold_heap h e rs : t" 
@@ -179,20 +204,26 @@ have "\<Gamma> \<turnstile>\<^sub>s f : t \<rightarrow> t' \<Longrightarrow> \<G
     from A B have Z: "free_vars (unfold_heap h e rs) \<subseteq> set (concat rss)" by (metis free_vars_unfold)
     from 6 have "ordering_for_heap (concat rss) h" by (auto simp add: safe_unfold_order_def)
     with 6 T X Y Z show ?case by (simp add: safe_unfold_order_def)
-  next case (7 rs rss t s e h)
-
-have "\<Gamma> \<turnstile>\<^sub>s f : t \<rightarrow> t' \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t' \<rightarrow> t'' \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s\<^sub>s f # s : t \<rightarrow> t''" by simp
-
-have "[k] \<turnstile>\<^sub>k t : Star \<Longrightarrow> 
-    \<Gamma> \<turnstile>\<^sub>s SUnfold t : Inductive k t \<rightarrow> subst\<^sub>t\<^sub>t 0 (Inductive k t) t" by simp
-
-    thus ?case by simp
-  next case (8 rs rss t s e h)
-
-have "\<Gamma> \<turnstile>\<^sub>s f : t \<rightarrow> t' \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s\<^sub>s s : t' \<rightarrow> t'' \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s\<^sub>s f # s : t \<rightarrow> t''" by simp
-have "[] \<turnstile>\<^sub>k t' : k \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s STyApp t' : Forall k t \<rightarrow> subst\<^sub>t\<^sub>t 0 t' t" by simp
-
-    thus ?case by simp
+  next case (7 rs rss tt s e h)
+    then obtain k where T: "t = Inductive k tt \<and> ([k] \<turnstile>\<^sub>k tt : Star)" 
+      and X: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : subst\<^sub>t\<^sub>t 0 (Inductive k tt) tt \<rightarrow> t'" by fastforce
+    from 7 have A: "free_vars e \<subseteq> set (rs @ concat rss)" by (simp add: safe_unfold_order_def)
+    from 7 have B: "ordering_for_heap (rs @ concat rss) h" by (simp add: safe_unfold_order_def)
+    with 7(3, 4) A B have Y: "[],\<Gamma> \<turnstile> unfold_heap h e rs : t" 
+      by (metis tc_unfold_heap safe_unfold_order_def)
+    from A B have Z: "free_vars (unfold_heap h e rs) \<subseteq> set (concat rss)" by (metis free_vars_unfold)
+    from 7 have "ordering_for_heap (concat rss) h" by (auto simp add: safe_unfold_order_def)
+    with 7 T X Y Z show ?case by (simp add: safe_unfold_order_def)
+  next case (8 rs rss tt s e h)
+    then obtain k t'' where T: "t = Forall k t'' \<and> ([] \<turnstile>\<^sub>k tt : k)" 
+      and X: "\<Gamma> \<turnstile>\<^sub>s\<^sub>s s : subst\<^sub>t\<^sub>t 0 tt t'' \<rightarrow> t'" by fastforce
+    from 8 have A: "free_vars e \<subseteq> set (rs @ concat rss)" by (simp add: safe_unfold_order_def)
+    from 8 have B: "ordering_for_heap (rs @ concat rss) h" by (simp add: safe_unfold_order_def)
+    with 8(3, 4) A B have Y: "[],\<Gamma> \<turnstile> unfold_heap h e rs : t" 
+      by (metis tc_unfold_heap safe_unfold_order_def)
+    from A B have Z: "free_vars (unfold_heap h e rs) \<subseteq> set (concat rss)" by (metis free_vars_unfold)
+    from 8 have "ordering_for_heap (concat rss) h" by (auto simp add: safe_unfold_order_def)
+    with 8 T X Y Z show ?case by (simp add: safe_unfold_order_def)
   qed (auto simp add: safe_unfold_order_def)
 
 lemma tc_unstack_state [elim]: "\<Sigma> hastype t \<Longrightarrow> safe_unfold_order\<^sub>\<Sigma> rs \<Sigma> \<Longrightarrow> 

@@ -86,7 +86,8 @@ termination
 definition heap_walk :: "('a \<Rightarrow> nat set) \<Rightarrow> 'a heap \<Rightarrow> nat set \<Rightarrow> nat set" where
   "heap_walk f h xs = heap_walk' f h {} xs"
 
-lemma walk_subset: "finite cs \<Longrightarrow> \<forall>a. finite (f a) \<Longrightarrow> card cs < length\<^sub>h h \<Longrightarrow> xs \<subseteq> heap_walk' f h cs xs"
+lemma walk_subset: "finite cs \<Longrightarrow> \<forall>a. finite (f a) \<Longrightarrow> card cs < length\<^sub>h h \<Longrightarrow> 
+    xs \<subseteq> heap_walk' f h cs xs"
   proof (induction f h cs xs rule: heap_walk'.induct)
   case (2 cs f h xs)
     have "xs \<subseteq> (

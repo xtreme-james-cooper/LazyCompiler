@@ -71,6 +71,9 @@ lemma [simp]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> [],\<Gamma> \<t
 lemma [elim]: "h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> length\<^sub>h h = length \<Gamma>"
   by (simp add: typecheck_heap_def)
 
+lemma [simp]: "empty\<^sub>h \<turnstile>\<^sub>h []"
+  by (simp add: typecheck_heap_def)
+
 lemma [elim]: "empty\<^sub>h \<turnstile>\<^sub>h \<Gamma> \<Longrightarrow> \<Gamma> = []"
   by (simp add: typecheck_heap_def)
 

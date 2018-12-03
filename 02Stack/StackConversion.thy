@@ -47,6 +47,9 @@ fun safe_unfold_order\<^sub>\<Sigma> :: "nat list list \<Rightarrow> stack_state
 | "safe_unfold_order\<^sub>\<Sigma> rss (StackState (Return v) s h) = 
     (\<forall>\<Gamma>. h \<turnstile>\<^sub>h \<Gamma> \<longrightarrow> safe_unfold_order rss (devalue v) h s \<Gamma>)"
 
+lemma [simp]: "free_vars e = {} \<Longrightarrow> safe_unfold_order [[]] e empty\<^sub>h [] []"
+  by (simp add: safe_unfold_order_def)
+
 lemma heap_lookup_freevars [simp]: "ordering_for_heap (ys @ [x] @ xs) h \<Longrightarrow> 
     free_vars (lookup\<^sub>h h x) \<subseteq> set xs"
   by (induction ys) simp_all
@@ -129,7 +132,30 @@ lemma [simp]: "[],\<Gamma> \<turnstile> e : t \<Longrightarrow> safe_unfold_orde
 lemma [simp]: "\<Gamma> \<turnstile>\<^sub>s f : t \<rightarrow> t' \<Longrightarrow> [],\<Gamma> \<turnstile> e : t \<Longrightarrow> unframe f e h = (e', h') \<Longrightarrow> [],\<Gamma> \<turnstile> e' : t'"
   by (induction \<Gamma> f t t' rule: typecheck_frame.induct) auto
 
-lemma [elim]: "safe_unfold_order (rs # rss) e h (f # s) \<Gamma> \<Longrightarrow> 
+lemma [simp]: "ordering_for_heap rs h \<Longrightarrow> x < length\<^sub>h h \<Longrightarrow> free_vars e \<subseteq> set rs \<Longrightarrow>
+    ordering_for_heap rs (update\<^sub>h h x e)"
+  apply (induction rs)
+  apply simp_all
+
+lemma [simp]: "ordering_for_stack h rss s \<Longrightarrow> x < length\<^sub>h h \<Longrightarrow>
+    ordering_for_stack (update\<^sub>h h x (unfold_heap h e rs)) rss s"
+  proof (induction h rss s rule: ordering_for_stack.induct)
+  case (3 h rs' rss f s)
+    from 3 have "ordering_for_stack (update\<^sub>h h x (unfold_heap h e rs)) rss s" by simp
+    from 3 have "\<forall>x \<in> free_vars\<^sub>s f. x < length\<^sub>h h" by simp
+    from 3 have "heap_walk free_vars h (free_vars\<^sub>s f) \<subseteq> set (concat rss)" by simp
+    from 3 have "ordering_for_stack h rss s" by simp
+    from 3 have "x < length\<^sub>h h" by simp
+
+
+
+
+
+    have "heap_walk free_vars (update\<^sub>h h x (unfold_heap h e rs)) (free_vars\<^sub>s f) \<subseteq> set (concat rss)" by simp
+    with 3 show ?case by simp
+  qed simp_all
+
+lemma [elim]: "safe_unfold_order (rs # rss) e h (f # s) \<Gamma> \<Longrightarrow> [],\<Gamma> \<turnstile> e : t \<Longrightarrow> \<Gamma> \<turnstile>\<^sub>s f : t \<rightarrow> t' \<Longrightarrow> 
     unframe f (unfold_heap h e rs) h = (e', h') \<Longrightarrow> safe_unfold_order rss e' h' s \<Gamma>"
   proof (induction f)
   case (SRef x)
@@ -141,13 +167,22 @@ lemma [elim]: "safe_unfold_order (rs # rss) e h (f # s) \<Gamma> \<Longrightarro
     from SRef have "ordering_for_heap (concat (rs # rss)) h" by (simp add: safe_unfold_order_def)
     from SRef have "heap_walk free_vars h {x} \<subseteq> set (concat rss)" by (simp add: safe_unfold_order_def)
     from SRef have "ordering_for_stack h rss s" by (simp add: safe_unfold_order_def)
+    from SRef have "x < length\<^sub>h h" by (simp add: safe_unfold_order_def)
+    from SRef have "[],\<Gamma> \<turnstile> e : t" by (simp add: safe_unfold_order_def)
 
 
-    have X: "x \<in> set (concat rss)" by (simp add: safe_unfold_order_def)
+    from SRef have "finite {x} \<and> (\<forall>a. finite (free_vars a)) \<and> (\<forall>x \<in> {x}. x < length\<^sub>h h)" 
+      by (simp add: safe_unfold_order_def)
+    hence "{x} \<subseteq> heap_walk free_vars h {x}" by (metis heap_walk_extends)
+    with SRef have X: "x \<in> set (concat rss)" by (auto simp add: safe_unfold_order_def)
+    from SRef have A: "h \<turnstile>\<^sub>h \<Gamma>" by (simp add: safe_unfold_order_def)
+    from SRef have B: "lookup \<Gamma> x = Some t \<and> t' = t" by fastforce
+    from SRef have "[],\<Gamma> \<turnstile> unfold_heap h e rs : t" by simp
+    with A B have Y: "update\<^sub>h h x (unfold_heap h e rs) \<turnstile>\<^sub>h \<Gamma>" by simp
 
-    have Y: "update\<^sub>h h x (unfold_heap h e rs) \<turnstile>\<^sub>h \<Gamma>" by simp
 
     have Z: "ordering_for_heap (concat rss) (update\<^sub>h h x (unfold_heap h e rs))" by simp
+
 
     have "ordering_for_stack (update\<^sub>h h x (unfold_heap h e rs)) rss s" by simp
     with SRef E H X Y Z show ?case by (simp add: safe_unfold_order_def)

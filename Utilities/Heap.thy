@@ -96,7 +96,8 @@ lemma walk_subset: "finite cs \<Longrightarrow> \<forall>a. finite (f a) \<Longr
     with 2(1, 2, 3, 4) show ?case by simp
   qed simp_all
 
-lemma [simp]: "finite xs \<Longrightarrow> \<forall>a. finite (f a) \<Longrightarrow> \<forall>x \<in> xs. x < length\<^sub>h h \<Longrightarrow> xs \<subseteq> heap_walk f h xs"
+lemma heap_walk_extends [simp]: "finite xs \<Longrightarrow> \<forall>a. finite (f a) \<Longrightarrow> \<forall>x \<in> xs. x < length\<^sub>h h \<Longrightarrow> 
+    xs \<subseteq> heap_walk f h xs"
   proof (induction xs rule: finite.induct)
   case (insertI xs x)
     moreover hence "card {} < length\<^sub>h h" by simp

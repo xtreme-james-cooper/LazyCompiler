@@ -1,5 +1,5 @@
-theory Determinism
-imports Evaluate
+theory SmallStepDeterminism
+imports SmallStepEvaluate
 begin
 
 lemma [elim]: "head_var e = Some x \<Longrightarrow> is_value e \<Longrightarrow> False"

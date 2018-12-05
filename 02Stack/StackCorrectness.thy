@@ -1,5 +1,5 @@
 theory StackCorrectness
-imports StackConversion "../01Expression/Evaluate" "../Utilities/Iterate"
+imports StackConversion "../01Expression/02SmallStep/SmallStepEvaluate" "../Utilities/Iterate"
 begin
 
 lemma complete': "e \<leadsto> e' \<Longrightarrow> unstack_state rs \<Sigma> = e \<Longrightarrow> \<exists>\<Sigma>'. \<Sigma> \<leadsto>\<^sub>s \<Sigma>' \<and> unstack_state rs \<Sigma>' = e'"

@@ -1,6 +1,8 @@
-theory Evaluate
-imports Typecheck
+theory ContextEvaluate
+imports "../Typecheck"
 begin
+
+(*
 
 inductive evaluate :: "expr \<Rightarrow> expr \<Rightarrow> bool" (infix "\<leadsto>" 60) where
   ev_app1 [simp]: "e\<^sub>1 \<leadsto> e\<^sub>1' \<Longrightarrow> App e\<^sub>1 e\<^sub>2 \<leadsto> App e\<^sub>1' e\<^sub>2" 
@@ -110,5 +112,7 @@ theorem preservation: "e \<leadsto> e' \<Longrightarrow> \<Delta>,\<Gamma> \<tur
       using tc_subst\<^sub>t\<^sub>e by fastforce
     ultimately show ?case by simp
   qed fastforce+
+
+*)
 
 end

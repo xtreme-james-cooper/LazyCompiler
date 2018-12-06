@@ -1,5 +1,5 @@
 theory StackConversion
-imports EvaluateStack
+imports StackEvaluate
 begin
 
 abbreviation reshuffle :: "nat \<Rightarrow> expr \<Rightarrow> expr" where

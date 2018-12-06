@@ -1,5 +1,5 @@
 theory StackDeterminism
-imports EvaluateStack
+imports StackEvaluate
 begin
 
 theorem determinism [elim]: "\<Sigma> \<leadsto>\<^sub>s \<Sigma>' \<Longrightarrow> \<Sigma> \<leadsto>\<^sub>s \<Sigma>'' \<Longrightarrow> \<Sigma>' = \<Sigma>''"

@@ -1,4 +1,4 @@
-theory TypecheckStack
+theory StackTypecheck
 imports Stack "../01Expression/Typecheck"
 begin
 

@@ -1,5 +1,5 @@
-theory EvaluateStack
-imports TypecheckStack
+theory StackEvaluate
+imports StackTypecheck
 begin
 
 inductive evaluate :: "stack_state \<Rightarrow> stack_state \<Rightarrow> bool" (infix "\<leadsto>\<^sub>s" 60) where

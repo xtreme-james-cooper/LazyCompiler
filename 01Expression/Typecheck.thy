@@ -325,4 +325,33 @@ lemma [simp]: "\<Delta>,\<Gamma> \<turnstile> e : t \<Longrightarrow> free_vars 
     with X show "\<Delta>,[] \<turnstile> e : t" by (metis tc_freevars)
   qed
 
+lemma canonical_arrow [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Arrow t\<^sub>1 t\<^sub>2 \<Longrightarrow> is_value e \<Longrightarrow> 
+    (\<exists>e'. e = Abs t\<^sub>1 e') \<or> (\<exists>e\<^sub>1 e\<^sub>2. e = Let e\<^sub>1 e\<^sub>2 \<and> is_value e\<^sub>2)"
+  by (induction \<Gamma> e "Arrow t\<^sub>1 t\<^sub>2" rule: typecheck_typecheck_cs.inducts(1)) simp_all
+
+lemma canonical_record [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Record ts \<Longrightarrow> is_value e \<Longrightarrow> 
+    (\<exists>fs. e = Rec fs \<and> \<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s fs : ts) \<or> (\<exists>e\<^sub>1 e\<^sub>2. e = Let e\<^sub>1 e\<^sub>2 \<and> is_value e\<^sub>2)"
+  by (induction \<Gamma> e "Record ts" rule: typecheck_typecheck_cs.inducts(1)) simp_all
+
+lemma canonical_variant [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Variant ts \<Longrightarrow> is_value e \<Longrightarrow> 
+    (\<exists>l e'. e = Inj l ts e' \<and> l < length ts) \<or> (\<exists>e\<^sub>1 e\<^sub>2. e = Let e\<^sub>1 e\<^sub>2 \<and> is_value e\<^sub>2)"
+  by (induction \<Gamma> e "Variant ts" rule: typecheck_typecheck_cs.inducts(1)) auto
+
+lemma canonical_inductive [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Inductive k t \<Longrightarrow> is_value e \<Longrightarrow> 
+    (\<exists>e'. e = Fold t e') \<or> (\<exists>e\<^sub>1 e\<^sub>2. e = Let e\<^sub>1 e\<^sub>2 \<and> is_value e\<^sub>2)"
+  by (induction \<Gamma> e "Inductive k t" rule: typecheck_typecheck_cs.inducts(1)) auto
+
+lemma canonical_forall [simp]: "\<Delta>,\<Gamma> \<turnstile> e : Forall k t \<Longrightarrow> is_value e \<Longrightarrow> 
+    (\<exists>e'. e = TyAbs k e') \<or> (\<exists>e\<^sub>1 e\<^sub>2. e = Let e\<^sub>1 e\<^sub>2 \<and> is_value e\<^sub>2)"
+  by (induction \<Gamma> e "Forall k t" rule: typecheck_typecheck_cs.inducts(1)) auto
+
+lemma lookup_in_tc [simp]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s fs : ts \<Longrightarrow> lookup ts l = Some t \<Longrightarrow> \<exists>e. lookup fs l = Some e"
+  by (induction fs l arbitrary: ts rule: lookup.induct) auto
+
+lemma [elim]: "\<Delta>,\<Gamma> \<turnstile>\<^sub>x\<^sub>s xs : ts \<Longrightarrow> lookup xs l = Some x \<Longrightarrow> x < length \<Gamma>"
+  proof (induction \<Delta> \<Gamma> xs ts arbitrary: l rule: typecheck_xs.induct)
+  case tcx_cons
+    thus ?case by (induction l) auto
+  qed simp_all
+
 end

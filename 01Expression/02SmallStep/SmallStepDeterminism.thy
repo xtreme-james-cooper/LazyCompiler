@@ -2,9 +2,6 @@ theory SmallStepDeterminism
 imports SmallStepEvaluate
 begin
 
-lemma [elim]: "head_var e = Some x \<Longrightarrow> is_value e \<Longrightarrow> False"
-  by (induction e arbitrary: x) (auto split: option.splits nat.splits)
-
 lemma [elim]: "e \<leadsto> e' \<Longrightarrow> is_value e \<Longrightarrow> False"
   by (induction e e' rule: evaluate.induct) auto
 

@@ -175,4 +175,7 @@ lemma [simp]: "finite (free_vars e)"
   and [simp]: "finite (free_vars\<^sub>c c)"
   by (induction e and c rule: free_vars_free_vars\<^sub>c.induct) simp_all
 
+lemma [elim]: "head_var e = Some x \<Longrightarrow> is_value e \<Longrightarrow> False"
+  by (induction e arbitrary: x) (auto split: option.splits nat.splits)
+
 end
